@@ -1,0 +1,339 @@
+Create a production-ready mobile-first application called "단어쑥".
+
+Project Goal:
+Build an educational English vocabulary memorization app for Korean students.
+
+Core concept:
+Students take a picture of English words and memorize them using textbook-based vocabulary and AI-assisted memory techniques.
+
+Target:
+Elementary school
+Middle school
+High school students
+Parents
+
+Tech Stack:
+
+Frontend:
+Flutter
+
+Backend:
+Supabase
+
+OCR:
+Google Cloud Vision API
+
+AI:
+OpenAI API
+
+Analytics:
+Firebase
+
+Language:
+Korean UI
+
+Theme:
+Primary #5BC878
+Accent #FFD95A
+Background #F6FFF6
+
+Font:
+Noto Sans KR
+
+Use responsive mobile-first design.
+
+────────────────
+
+App Name:
+단어쑥
+
+Slogan:
+찍고, 보고, 기억된다.
+
+────────────────
+
+Build these screens:
+
+1.
+SplashScreen
+
+Features:
+Animated sprout logo
+Slogan
+
+↓
+
+Auto navigate Home
+
+────────────────
+
+2.
+HomeScreen
+
+Sections:
+
+Today's progress
+
+Current streak
+
+Today's words
+
+Quick camera scan
+
+Textbook learning
+
+Review section
+
+Recent saved words
+
+Bottom navigation:
+
+Home
+Search
+Study
+Review
+Profile
+
+────────────────
+
+3.
+CameraScreen
+
+Features:
+
+Open camera
+
+Capture image
+
+OCR scan
+
+Detect multiple English words
+
+Highlight detected words
+
+User selects one word
+
+Loading state
+
+Error state
+
+Retry
+
+↓
+
+Navigate WordDetail
+
+────────────────
+
+4.
+WordDetailScreen
+
+Display:
+
+English word
+
+Pronunciation button
+
+Korean meaning
+
+Example sentence
+
+Idiom
+
+Memory tip
+
+Bookmark
+
+Start memorization
+
+Button:
+
+Save word
+
+────────────────
+
+5.
+MemorizationScreen
+
+Flashcard UI
+
+Front:
+English
+
+Back:
+Meaning
+
+Buttons:
+
+Easy
+
+Hard
+
+Forgot
+
+Use spaced repetition.
+
+Review intervals:
+
+1 day
+3 days
+7 days
+14 days
+30 days
+
+────────────────
+
+6.
+ReviewScreen
+
+Display:
+
+Today's review
+
+Retention chart
+
+Upcoming words
+
+Progress
+
+────────────────
+
+7.
+StudyScreen
+
+Structure:
+
+Elementary
+
+Middle
+
+High
+
+↓
+
+Grade
+
+↓
+
+Unit
+
+↓
+
+Vocabulary
+
+Track completion.
+
+────────────────
+
+8.
+SearchScreen
+
+Search vocabulary.
+
+Show:
+
+Recent
+
+Popular
+
+Saved
+
+────────────────
+
+9.
+ProfileScreen
+
+Display:
+
+Level
+
+Words memorized
+
+Study calendar
+
+Achievements
+
+────────────────
+
+Database Design:
+
+users
+
+id
+name
+level
+streak
+created_at
+
+words
+
+id
+word
+meaning
+example
+idiom
+memory_tip
+
+saved_words
+
+user_id
+word_id
+
+reviews
+
+word_id
+next_review
+
+────────────────
+
+Create reusable components:
+
+PrimaryButton
+
+WordCard
+
+ProgressCard
+
+BottomNavigation
+
+FlashCard
+
+WordInfoCard
+
+────────────────
+
+Create project structure:
+
+/screens
+
+/components
+
+/services
+
+/models
+
+/theme
+
+/assets
+
+────────────────
+
+Generate:
+
+Clean architecture
+
+Responsive layout
+
+State management
+
+Navigation
+
+Dark mode support
+
+Dummy data
+
+Ready to run locally
+
+Include comments in code.
+
+Create all files.
