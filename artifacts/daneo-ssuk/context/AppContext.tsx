@@ -17,8 +17,10 @@ interface AppState {
   streak: number;
   totalLearned: number;
   todayCount: number;
-  completedUnits: string[]; // "grade-unit"
+  completedUnits: string[];
   lastActiveDate: string | null;
+  onboardingDone: boolean;
+  isLoaded: boolean;
 }
 
 interface AppContextType extends AppState {
@@ -31,6 +33,7 @@ interface AppContextType extends AppState {
   getUpcomingReviews: () => Review[];
   markUnitComplete: (grade: number, unit: number) => Promise<void>;
   isUnitComplete: (grade: number, unit: number) => boolean;
+  completeOnboarding: () => Promise<void>;
 }
 
 // ── Spaced Repetition ─────────────────────────────────────────────────────────
@@ -42,7 +45,6 @@ function getNextInterval(
   const { interval, repetitions } = current;
   if (difficulty === "forgot") return 1;
   if (difficulty === "hard") return Math.max(1, Math.floor(interval * 1.2));
-  // easy
   if (repetitions === 0) return 1;
   if (repetitions === 1) return 3;
   if (repetitions === 2) return 7;
@@ -70,6 +72,7 @@ const KEYS = {
   todayCount: "dss:todayCount",
   completedUnits: "dss:completedUnits",
   lastActiveDate: "dss:lastActiveDate",
+  onboardingDone: "dss:onboardingDone",
 };
 
 async function load<T>(key: string, fallback: T): Promise<T> {
@@ -98,22 +101,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     todayCount: 0,
     completedUnits: [],
     lastActiveDate: null,
+    onboardingDone: false,
+    isLoaded: false,
   });
 
   useEffect(() => {
     (async () => {
-      const [savedWords, reviews, streak, totalLearned, todayCount, completedUnits, lastActiveDate] =
-        await Promise.all([
-          load<SavedWord[]>(KEYS.savedWords, []),
-          load<Review[]>(KEYS.reviews, []),
-          load<number>(KEYS.streak, 0),
-          load<number>(KEYS.totalLearned, 0),
-          load<number>(KEYS.todayCount, 0),
-          load<string[]>(KEYS.completedUnits, []),
-          load<string | null>(KEYS.lastActiveDate, null),
-        ]);
+      const [
+        savedWords,
+        reviews,
+        streak,
+        totalLearned,
+        todayCount,
+        completedUnits,
+        lastActiveDate,
+        onboardingDone,
+      ] = await Promise.all([
+        load<SavedWord[]>(KEYS.savedWords, []),
+        load<Review[]>(KEYS.reviews, []),
+        load<number>(KEYS.streak, 0),
+        load<number>(KEYS.totalLearned, 0),
+        load<number>(KEYS.todayCount, 0),
+        load<string[]>(KEYS.completedUnits, []),
+        load<string | null>(KEYS.lastActiveDate, null),
+        load<boolean>(KEYS.onboardingDone, false),
+      ]);
 
-      // streak logic: reset if more than 1 day gap
+      // Streak: reset if gap > 1 day
       const todayStr = today();
       let newStreak = streak;
       if (lastActiveDate) {
@@ -123,11 +137,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (diff > 1) newStreak = 0;
       }
 
-      // reset todayCount if new day
       const newTodayCount = lastActiveDate === todayStr ? todayCount : 0;
 
-      setState({ savedWords, reviews, streak: newStreak, totalLearned, todayCount: newTodayCount, completedUnits, lastActiveDate });
+      setState({
+        savedWords,
+        reviews,
+        streak: newStreak,
+        totalLearned,
+        todayCount: newTodayCount,
+        completedUnits,
+        lastActiveDate,
+        onboardingDone,
+        isLoaded: true,
+      });
     })();
+  }, []);
+
+  const completeOnboarding = useCallback(async () => {
+    setState((prev) => ({ ...prev, onboardingDone: true }));
+    await save(KEYS.onboardingDone, true);
   }, []);
 
   const saveWord = useCallback(
@@ -263,6 +291,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         getUpcomingReviews,
         markUnitComplete,
         isUnitComplete,
+        completeOnboarding,
       }}
     >
       {children}
