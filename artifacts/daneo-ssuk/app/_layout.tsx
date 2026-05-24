@@ -48,6 +48,8 @@ function RootLayoutNav() {
       <Stack.Screen name="camera" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="word-detail" options={{ headerShown: false }} />
       <Stack.Screen name="memorization" options={{ headerShown: false }} />
+      <Stack.Screen name="spelling" options={{ headerShown: false }} />
+      <Stack.Screen name="quiz" options={{ headerShown: false }} />
     </Stack>
   );
 }

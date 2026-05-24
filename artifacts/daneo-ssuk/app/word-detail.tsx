@@ -234,17 +234,37 @@ export default function WordDetailScreen() {
           },
         ]}
       >
-        <PrimaryButton
-          title={saved ? "저장됨" : "저장하기"}
-          onPress={handleBookmark}
-          variant={saved ? "secondary" : "ghost"}
-          style={styles.saveBtn}
-        />
-        <PrimaryButton
-          title="암기 시작"
-          onPress={handleStartMemorize}
-          style={styles.memorizeBtn}
-        />
+        <View style={styles.bottomRow}>
+          <PrimaryButton
+            title={saved ? "저장됨" : "저장하기"}
+            onPress={handleBookmark}
+            variant={saved ? "secondary" : "ghost"}
+            style={styles.saveBtn}
+          />
+          <PrimaryButton
+            title="암기 시작"
+            onPress={handleStartMemorize}
+            style={styles.memorizeBtn}
+          />
+        </View>
+        <TouchableOpacity
+          onPress={() =>
+            router.push({ pathname: "/spelling", params: { id: word.id } })
+          }
+          style={[
+            styles.spellingBtn,
+            {
+              borderColor: colors.primary + "55",
+              backgroundColor: colors.primary + "0D",
+              borderRadius: colors.radius,
+            },
+          ]}
+        >
+          <Ionicons name="text" size={16} color={colors.primary} />
+          <Text style={[styles.spellingBtnText, { color: colors.primary }]}>
+            스펠링 연습
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -319,12 +339,21 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    flexDirection: "row",
-    gap: 10,
+    gap: 8,
     paddingHorizontal: 20,
     paddingTop: 12,
     borderTopWidth: 1,
   },
+  bottomRow: { flexDirection: "row", gap: 10 },
   saveBtn: { flex: 1 },
   memorizeBtn: { flex: 2 },
+  spellingBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderWidth: 1,
+    paddingVertical: 10,
+  },
+  spellingBtnText: { fontSize: 14, fontFamily: "NotoSansKR_600SemiBold" },
 });

@@ -73,6 +73,11 @@ export default function MemorizationScreen() {
   const progress = reviewQueue ? queueIndex / total : 0;
 
   if (done) {
+    // Build ids for spelling/quiz from the words we just reviewed
+    const practicedIds = reviewQueue
+      ? reviewQueue.map((w) => w!.id).join(",")
+      : id ?? "";
+
     return (
       <View style={[styles.screen, styles.doneScreen, { backgroundColor: colors.background }]}>
         <View style={[styles.doneCircle, { backgroundColor: colors.primary + "22" }]}>
@@ -80,13 +85,44 @@ export default function MemorizationScreen() {
         </View>
         <Text style={[styles.doneTitle, { color: colors.foreground }]}>학습 완료!</Text>
         <Text style={[styles.doneSub, { color: colors.mutedForeground }]}>
-          {total}개 단어를 복습했습니다
+          {total}개 단어를 학습했습니다
         </Text>
+
+        {/* Spelling practice CTA */}
+        <TouchableOpacity
+          onPress={() =>
+            router.push({ pathname: "/spelling", params: { ids: practicedIds } })
+          }
+          style={[
+            styles.spellingBtn,
+            { backgroundColor: colors.accent + "22", borderColor: colors.accent + "55", borderRadius: colors.radius },
+          ]}
+        >
+          <Ionicons name="text" size={18} color={colors.accent} />
+          <Text style={[styles.spellingBtnText, { color: colors.accent }]}>
+            스펠링 연습하기
+          </Text>
+        </TouchableOpacity>
+
+        {/* Quiz CTA */}
+        <TouchableOpacity
+          onPress={() =>
+            router.push({ pathname: "/quiz", params: { ids: practicedIds } })
+          }
+          style={[
+            styles.quizBtn,
+            { backgroundColor: colors.primary, borderRadius: colors.radius },
+          ]}
+        >
+          <Ionicons name="shuffle" size={18} color="#fff" />
+          <Text style={styles.quizBtnText}>랜덤 퀴즈로 확인</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           onPress={() => router.back()}
-          style={[styles.doneBtn, { backgroundColor: colors.primary, borderRadius: colors.radius }]}
+          style={styles.doneBtn}
         >
-          <Text style={styles.doneBtnText}>완료</Text>
+          <Text style={[styles.doneBtnText, { color: colors.mutedForeground }]}>나중에</Text>
         </TouchableOpacity>
       </View>
     );
@@ -250,11 +286,38 @@ const styles = StyleSheet.create({
   doneBtn: {
     paddingHorizontal: 40,
     paddingVertical: 14,
-    marginTop: 8,
+    marginTop: 4,
   },
   doneBtnText: {
+    fontSize: 15,
+    fontFamily: "NotoSansKR_400Regular",
+  },
+  spellingBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderWidth: 1.5,
+    paddingHorizontal: 28,
+    paddingVertical: 13,
+    width: "100%",
+  },
+  spellingBtnText: {
+    fontSize: 15,
+    fontFamily: "NotoSansKR_700Bold",
+  },
+  quizBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    width: "100%",
+  },
+  quizBtnText: {
     color: "#fff",
     fontSize: 16,
-    fontFamily: "NotoSansKR_600SemiBold",
+    fontFamily: "NotoSansKR_700Bold",
   },
 });

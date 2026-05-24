@@ -328,6 +328,57 @@ export default function ReviewScreen() {
         </View>
       </View>
 
+      {/* Random quiz CTA */}
+      {reviews.length > 0 && (
+        <TouchableOpacity
+          onPress={() => {
+            const ids = reviews.map((r) => r.wordId).join(",");
+            router.push({ pathname: "/quiz", params: { ids } });
+          }}
+          style={[
+            styles.quizCta,
+            {
+              backgroundColor: colors.primary,
+              borderRadius: colors.radius,
+            },
+          ]}
+        >
+          <Ionicons name="shuffle" size={20} color="#fff" />
+          <View>
+            <Text style={styles.quizCtaTitle}>랜덤 퀴즈</Text>
+            <Text style={styles.quizCtaSub}>외운 단어 {reviews.length}개를 랜덤으로 확인</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.7)" />
+        </TouchableOpacity>
+      )}
+
+      {/* Spelling practice CTA */}
+      {reviews.length > 0 && (
+        <TouchableOpacity
+          onPress={() => {
+            const ids = reviews.map((r) => r.wordId).join(",");
+            router.push({ pathname: "/spelling", params: { ids } });
+          }}
+          style={[
+            styles.spellingCta,
+            {
+              borderColor: colors.accent + "55",
+              backgroundColor: colors.accent + "0D",
+              borderRadius: colors.radius,
+            },
+          ]}
+        >
+          <Ionicons name="text" size={20} color={colors.accent} />
+          <View>
+            <Text style={[styles.spellingCtaTitle, { color: colors.accent }]}>스펠링 연습</Text>
+            <Text style={[styles.spellingCtaSub, { color: colors.mutedForeground }]}>
+              글자 하나씩 입력해서 스펠링 확인
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+        </TouchableOpacity>
+      )}
+
       {/* Parent trust section */}
       <View
         style={[
@@ -451,4 +502,22 @@ const styles = StyleSheet.create({
   trustCard: { borderWidth: 1, padding: 16, gap: 10 },
   trustRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   trustText: { fontSize: 13, fontFamily: "NotoSansKR_600SemiBold" },
+  // Quiz / Spelling CTAs
+  quizCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 16,
+  },
+  quizCtaTitle: { fontSize: 15, fontFamily: "NotoSansKR_700Bold", color: "#fff" },
+  quizCtaSub: { fontSize: 12, fontFamily: "NotoSansKR_400Regular", color: "rgba(255,255,255,0.8)", marginTop: 2 },
+  spellingCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 16,
+    borderWidth: 1,
+  },
+  spellingCtaTitle: { fontSize: 15, fontFamily: "NotoSansKR_700Bold" },
+  spellingCtaSub: { fontSize: 12, fontFamily: "NotoSansKR_400Regular", marginTop: 2 },
 });
