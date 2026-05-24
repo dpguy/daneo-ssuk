@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/"
+title = "단어쑥"
+version = "1.0.0"
+id = "artifacts/daneo-ssuk"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/" ]
+localPort = 22843
+
+[services.development]
+run = "pnpm --filter @workspace/daneo-ssuk run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/daneo-ssuk", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/daneo-ssuk", "run", "serve" ]
+
+[services.env]
+PORT = "22843"
+BASE_PATH = "/"

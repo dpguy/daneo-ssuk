@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "단어쑥",
+    "slug": "daneo-ssuk",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "daneo-ssuk",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F6FFF6"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.daneo.ssuk"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#F6FFF6"
+      }
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser",
+      "expo-camera"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
