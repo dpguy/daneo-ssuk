@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "gxncd78PV5YFE_3h_ipkX"
@@ -12,3 +11,9 @@ id = "37EGD7CuyWA1NSQ-hkF2h"
 uri = "file://attached_assets/generated_images/splash.png"
 type = "image"
 title = "generated_image"
+
+[[outputs]]
+id = "u9HRL0MUweeLXqELyri8J"
+uri = "file://daneo-ssuk-backup.zip"
+type = "unspecified"
+title = "단어쑥 소스 코드 백업"
