@@ -17,3 +17,9 @@ id = "u9HRL0MUweeLXqELyri8J"
 uri = "file://daneo-ssuk-backup.zip"
 type = "unspecified"
 title = "단어쑥 소스 코드 백업"
+
+[[outputs]]
+id = "MNjlqW7xBbBaAhWcfr5Nw"
+uri = "file://expo-qr.png"
+type = "image"
+title = "Expo Go QR 코드"
