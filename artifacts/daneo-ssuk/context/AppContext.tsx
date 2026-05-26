@@ -21,6 +21,10 @@ interface AppState {
   lastActiveDate: string | null;
   onboardingDone: boolean;
   isLoaded: boolean;
+  // Auth — false = guest mode; set to true after Supabase sign-in
+  isLoggedIn: boolean;
+  userEmail: string | null;
+  displayName: string | null;
 }
 
 interface AppContextType extends AppState {
@@ -34,6 +38,10 @@ interface AppContextType extends AppState {
   markUnitComplete: (grade: number, unit: number) => Promise<void>;
   isUnitComplete: (grade: number, unit: number) => boolean;
   completeOnboarding: () => Promise<void>;
+  // Auth actions — wired to Supabase when available
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  signOut: () => Promise<void>;
 }
 
 // ── Spaced Repetition ─────────────────────────────────────────────────────────
@@ -103,6 +111,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     lastActiveDate: null,
     onboardingDone: false,
     isLoaded: false,
+    isLoggedIn: false,
+    userEmail: null,
+    displayName: null,
   });
 
   useEffect(() => {
@@ -139,7 +150,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const newTodayCount = lastActiveDate === todayStr ? todayCount : 0;
 
-      setState({
+      setState((prev) => ({
+        ...prev,
         savedWords,
         reviews,
         streak: newStreak,
@@ -149,7 +161,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         lastActiveDate,
         onboardingDone,
         isLoaded: true,
-      });
+      }));
     })();
   }, []);
 
@@ -278,6 +290,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [state.completedUnits]
   );
 
+  // ── Auth (guest-first; wire to Supabase when EXPO_PUBLIC_SUPABASE_URL is set) ──
+
+  const signIn = useCallback(
+    async (_email: string, _password: string): Promise<{ error: string | null }> => {
+      // TODO: replace stub with Supabase sign-in when env vars are set
+      // import { getSupabase } from "@/services/supabase";
+      // const { data, error } = await getSupabase().auth.signInWithPassword({ email, password });
+      // if (error) return { error: error.message };
+      // setState(prev => ({ ...prev, isLoggedIn: true, userEmail: data.user.email ?? null }));
+      return { error: "Supabase 연결 후 사용 가능합니다" };
+    },
+    []
+  );
+
+  const signUp = useCallback(
+    async (_email: string, _password: string): Promise<{ error: string | null }> => {
+      // TODO: replace stub with Supabase sign-up when env vars are set
+      return { error: "Supabase 연결 후 사용 가능합니다" };
+    },
+    []
+  );
+
+  const signOut = useCallback(async () => {
+    // TODO: replace stub with Supabase sign-out
+    setState((prev) => ({ ...prev, isLoggedIn: false, userEmail: null, displayName: null }));
+  }, []);
+
   return (
     <AppContext.Provider
       value={{
@@ -292,6 +331,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         markUnitComplete,
         isUnitComplete,
         completeOnboarding,
+        signIn,
+        signUp,
+        signOut,
       }}
     >
       {children}
