@@ -84,7 +84,28 @@ export default function MemorizationScreen() {
   if (!currentWord && !done) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.foreground, padding: 20 }}>단어를 찾을 수 없습니다.</Text>
+        <View style={[styles.header, { paddingTop: topPad + 8, borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={() => { stop(); router.back(); }} hitSlop={12}>
+            <Ionicons name="close" size={24} color={colors.foreground} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.foreground }]}>암기</Text>
+          <View style={{ width: 24 }} />
+        </View>
+        <View style={styles.fallbackCenter}>
+          <Ionicons name="alert-circle-outline" size={52} color={colors.mutedForeground} />
+          <Text style={[styles.fallbackTitle, { color: colors.foreground }]}>
+            단어를 찾을 수 없습니다
+          </Text>
+          <Text style={[styles.fallbackSub, { color: colors.mutedForeground }]}>
+            단어 목록으로 돌아가서{"\n"}다시 시도해 보세요.
+          </Text>
+          <TouchableOpacity
+            onPress={() => { stop(); router.back(); }}
+            style={[styles.fallbackBtn, { backgroundColor: colors.primary, borderRadius: colors.radius }]}
+          >
+            <Text style={styles.fallbackBtnText}>돌아가기</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -342,6 +363,34 @@ const styles = StyleSheet.create({
   quizBtnText: {
     color: "#fff",
     fontSize: 16,
+    fontFamily: "NotoSansKR_700Bold",
+  },
+  fallbackCenter: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 16,
+    padding: 40,
+  },
+  fallbackTitle: {
+    fontSize: 20,
+    fontFamily: "NotoSansKR_700Bold",
+    textAlign: "center",
+  },
+  fallbackSub: {
+    fontSize: 14,
+    fontFamily: "NotoSansKR_400Regular",
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  fallbackBtn: {
+    paddingHorizontal: 32,
+    paddingVertical: 13,
+    marginTop: 8,
+  },
+  fallbackBtnText: {
+    color: "#fff",
+    fontSize: 15,
     fontFamily: "NotoSansKR_700Bold",
   },
 });

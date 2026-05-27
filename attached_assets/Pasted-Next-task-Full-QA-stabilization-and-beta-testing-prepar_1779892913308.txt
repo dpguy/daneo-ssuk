@@ -1,0 +1,119 @@
+Next task: Full QA stabilization and beta testing preparation for 단어쑥.
+
+Current status:
+- Core learning flow works.
+- TTS pronunciation works.
+- Custom word save/edit/delete works.
+- Registered and custom words work with Word Detail, Memorization, Spelling, Review, Search.
+- AsyncStorage is used.
+- Do not connect Supabase yet.
+- Do not connect real OCR yet.
+- Do not add payment yet.
+
+Goal:
+Make the app stable enough for real device beta testing with Expo Go.
+
+Tasks:
+
+1. Full navigation QA
+Check and fix all routes:
+- Onboarding → Home
+- Home → Camera
+- Camera → Word Detail
+- Word Detail → Memorization
+- Word Detail → Spelling
+- Word Detail → Search/Home back navigation
+- Search → Word Detail
+- Study → Grade → Unit → Word Detail
+- Review → Memorization
+- Profile → Debug screen
+
+Make sure:
+- Back buttons work
+- No blank screens
+- No crash when route params are missing
+- Unknown word IDs show safe fallback UI
+
+2. Empty states
+Add or improve Korean empty states for:
+- No saved words
+- No recent words
+- No custom words
+- No review words
+- No search results
+- No completed units
+- No achievements yet
+
+3. Error handling
+Add safe error handling for:
+- AsyncStorage read failure
+- AsyncStorage write failure
+- Missing word data
+- Missing pronunciation data
+- Failed custom word edit
+- Failed custom word delete
+- Failed review schedule update
+
+4. Debug tools
+In developer debug screen, add reset buttons:
+- Reset saved words
+- Reset review schedule
+- Reset custom words
+- Reset study progress
+- Reset all local data
+
+Each reset button must show confirmation Alert before deleting.
+
+5. Data consistency checks
+Add debug checks for:
+- savedWords count
+- customWords count
+- review schedule count
+- duplicate custom word detection
+- orphan savedWords detection
+- orphan review items detection
+- vocabulary total count
+- elementary/middle/high word count
+
+6. Performance cleanup
+- Remove unused imports
+- Remove duplicate functions
+- Optimize FlatList rendering where needed
+- Avoid unnecessary re-renders
+- Keep animations smooth
+- Keep app startup fast
+
+7. Beta test document
+Create README_BETA_TEST.md.
+
+Include:
+- How to run in Replit
+- How to test with Expo Go
+- Main test checklist
+- Known limitations
+- Fake/demo features
+- Current app version
+- Next planned integrations
+
+Known limitations must include:
+- Real OCR is not connected yet
+- Supabase is not connected yet
+- AI memory tips are not connected yet
+- Payment is not connected yet
+- Camera scan is demo mode
+
+8. Keep Korean UI.
+9. Keep current design and brand colors:
+#5BC878
+#FFD95A
+#F6FFF6
+
+10. Run typecheck.
+11. Run the app.
+12. Provide final report:
+- Files changed
+- Bugs fixed
+- Debug tools added
+- Test checklist
+- Remaining known issues
+- Whether the app is ready for Expo Go beta testing

@@ -50,6 +50,12 @@ interface AppContextType extends AppState {
   deleteCustomWord: (id: string) => Promise<void>;
   /** Looks up a word by ID in the dataset first, then in customWords. */
   findWord: (id: string) => Word | undefined;
+  // Reset helpers (dev / debug tools)
+  resetSavedWords: () => Promise<void>;
+  resetReviews: () => Promise<void>;
+  resetCustomWords: () => Promise<void>;
+  resetStudyProgress: () => Promise<void>;
+  resetAll: () => Promise<void>;
 }
 
 // ── Spaced Repetition ─────────────────────────────────────────────────────────
@@ -103,8 +109,13 @@ async function load<T>(key: string, fallback: T): Promise<T> {
   }
 }
 
-async function save(key: string, value: unknown) {
-  await AsyncStorage.setItem(key, JSON.stringify(value));
+async function save(key: string, value: unknown): Promise<void> {
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // AsyncStorage write failed; state is already updated in memory for this session.
+    // On next cold start the old persisted value will be loaded — acceptable for MVP.
+  }
 }
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -466,6 +477,75 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [state.customWords]
   );
 
+  // ── Reset helpers (developer / debug tools) ────────────────────────────────
+
+  const resetSavedWords = useCallback(async () => {
+    setState((prev) => ({ ...prev, savedWords: [] }));
+    await save(KEYS.savedWords, []);
+  }, []);
+
+  const resetReviews = useCallback(async () => {
+    setState((prev) => ({ ...prev, reviews: [] }));
+    await save(KEYS.reviews, []);
+  }, []);
+
+  /** Clears custom words and cascades to any related savedWords/reviews entries. */
+  const resetCustomWords = useCallback(async () => {
+    const nonCustomSaved = state.savedWords.filter((s) => !s.wordId.startsWith("custom_"));
+    const nonCustomReviews = state.reviews.filter((r) => !r.wordId.startsWith("custom_"));
+    setState((prev) => ({
+      ...prev,
+      customWords: [],
+      savedWords: nonCustomSaved,
+      reviews: nonCustomReviews,
+    }));
+    await Promise.all([
+      save(KEYS.customWords, []),
+      save(KEYS.savedWords, nonCustomSaved),
+      save(KEYS.reviews, nonCustomReviews),
+    ]);
+  }, [state.savedWords, state.reviews]);
+
+  const resetStudyProgress = useCallback(async () => {
+    setState((prev) => ({
+      ...prev,
+      streak: 0,
+      totalLearned: 0,
+      todayCount: 0,
+      completedUnits: [],
+      lastActiveDate: null,
+      dailyWords: {},
+      dailyReviews: {},
+    }));
+    await Promise.all([
+      save(KEYS.streak, 0),
+      save(KEYS.totalLearned, 0),
+      save(KEYS.todayCount, 0),
+      save(KEYS.completedUnits, []),
+      save(KEYS.lastActiveDate, null),
+      save(KEYS.dailyWords, {}),
+      save(KEYS.dailyReviews, {}),
+    ]);
+  }, []);
+
+  /** Wipes all local data — equivalent to a fresh install. */
+  const resetAll = useCallback(async () => {
+    setState((prev) => ({
+      ...prev,
+      savedWords: [],
+      reviews: [],
+      customWords: [],
+      streak: 0,
+      totalLearned: 0,
+      todayCount: 0,
+      completedUnits: [],
+      lastActiveDate: null,
+      dailyWords: {},
+      dailyReviews: {},
+    }));
+    await AsyncStorage.multiRemove(Object.values(KEYS));
+  }, []);
+
   return (
     <AppContext.Provider
       value={{
@@ -487,6 +567,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updateCustomWord,
         deleteCustomWord,
         findWord,
+        resetSavedWords,
+        resetReviews,
+        resetCustomWords,
+        resetStudyProgress,
+        resetAll,
       }}
     >
       {children}

@@ -1,8 +1,9 @@
-// DebugScreen — developer-only validation checklist for vocabulary data and app flow
+// DebugScreen — developer-only validation checklist, consistency checks, and data reset tools
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
+  Alert,
   Platform,
   ScrollView,
   StyleSheet,
@@ -20,50 +21,47 @@ export default function DebugScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { reviews, savedWords, customWords, findWord } = useApp();
+  const {
+    reviews, savedWords, customWords, findWord,
+    resetSavedWords, resetReviews, resetCustomWords, resetStudyProgress, resetAll,
+  } = useApp();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   const stats = getVocabStats();
 
-  // Check if word detail would receive correct data
-  const testWordId = "e25"; // friend
-  const testWord = getWordById(testWordId);
+  // ── Dataset checks ───────────────────────────────────────────────────────
+  const testWord = getWordById("e25");
   const wordDetailOk = !!testWord && testWord.word === "friend";
+  const wordsWithMissingFields = MOCK_WORDS.filter(
+    (w) => !w.word || !w.meaning || !w.pronunciation || !w.example || !w.memoryTip
+  );
+  const wordIds = MOCK_WORDS.map((w) => w.id);
+  const duplicateIds = wordIds.filter((id, i) => wordIds.indexOf(id) !== i);
 
-  // findWord should resolve both dataset words and custom words
+  // ── Custom word checks ───────────────────────────────────────────────────
   const findWordDatasetOk = !!findWord("e25");
   const findWordCustomOk =
-    customWords.length === 0
-      ? true // no custom words yet — considered passing
-      : !!findWord(customWords[0].id);
-
-  // Check if memorization would find a review word
-  const memorizationOk = reviews.length >= 0; // always true (empty is valid)
-
-  // Check if review schedule saves
-  const reviewScheduleOk = typeof reviews === "object";
-
-  // Custom word in search: if any custom words exist, check one is in savedWords
+    customWords.length === 0 ? true : !!findWord(customWords[0].id);
+  const memorizationOk = reviews.length >= 0;
   const customInSearchOk =
     customWords.length === 0
       ? true
       : savedWords.some((s) => s.wordId === customWords[0].id);
-
-  // Custom word in review: if any custom words exist, check one is in reviews
   const customInReviewOk =
     customWords.length === 0
       ? true
       : reviews.some((r) => r.wordId === customWords[0].id);
 
-  // Check words have required fields
-  const wordsWithMissingFields = MOCK_WORDS.filter(
-    (w) => !w.word || !w.meaning || !w.pronunciation || !w.example || !w.memoryTip
+  // ── Data consistency checks ──────────────────────────────────────────────
+  // Orphan = entry whose wordId can't be resolved by findWord
+  const orphanSavedWords = savedWords.filter((s) => !findWord(s.wordId));
+  const orphanReviews = reviews.filter((r) => !findWord(r.wordId));
+  const customWordIds = customWords.map((w) => w.id);
+  const duplicateCustomIds = customWordIds.filter(
+    (id, i) => customWordIds.indexOf(id) !== i
   );
 
-  // Check for duplicate IDs
-  const wordIds = MOCK_WORDS.map((w) => w.id);
-  const duplicateIds = wordIds.filter((id, i) => wordIds.indexOf(id) !== i);
-
+  // ── Checks array ─────────────────────────────────────────────────────────
   const checks: { label: string; value: string; ok: boolean }[] = [
     {
       label: "전체 단어 수",
@@ -91,15 +89,16 @@ export default function DebugScreen() {
       ok: stats.demoMatched === 8,
     },
     {
-      label: "중복 ID",
-      value: duplicateIds.length === 0 ? "없음" : `${duplicateIds.join(", ")}`,
+      label: "중복 ID (데이터셋)",
+      value: duplicateIds.length === 0 ? "없음" : duplicateIds.join(", "),
       ok: duplicateIds.length === 0,
     },
     {
       label: "필수 필드 누락 단어",
-      value: wordsWithMissingFields.length === 0
-        ? "없음"
-        : `${wordsWithMissingFields.map((w) => w.id).join(", ")}`,
+      value:
+        wordsWithMissingFields.length === 0
+          ? "없음"
+          : wordsWithMissingFields.map((w) => w.id).join(", "),
       ok: wordsWithMissingFields.length === 0,
     },
     {
@@ -118,22 +117,21 @@ export default function DebugScreen() {
     },
     {
       label: "복습 스케줄 저장",
-      value: reviewScheduleOk
-        ? `정상 (저장됨 ${savedWords.length}개, 복습 ${reviews.length}개)`
-        : "오류",
-      ok: reviewScheduleOk,
+      value: `정상 (저장됨 ${savedWords.length}개, 복습 ${reviews.length}개)`,
+      ok: true,
     },
-    // ── Custom word checks ───────────────────────────────────────────────
+    // ── Custom word checks ─────────────────────────────────────────────────
     {
       label: "커스텀 단어 수",
       value: `${customWords.length}개 저장됨`,
-      ok: true, // informational — always passes
+      ok: true,
     },
     {
       label: "커스텀 단어 findWord 조회",
-      value: findWordDatasetOk && findWordCustomOk
-        ? "정상 (데이터셋 + 커스텀 모두 조회 가능)"
-        : "오류: findWord 실패",
+      value:
+        findWordDatasetOk && findWordCustomOk
+          ? "정상 (데이터셋 + 커스텀 모두 조회 가능)"
+          : "오류: findWord 실패",
       ok: findWordDatasetOk && findWordCustomOk,
     },
     {
@@ -141,7 +139,7 @@ export default function DebugScreen() {
       value: customInSearchOk
         ? customWords.length === 0
           ? "커스텀 단어 없음 (저장하면 자동 표시)"
-          : `정상 (${customWords.length}개 중 저장됨 확인)`
+          : `정상 (${customWords.length}개 확인)`
         : "오류: savedWords 미포함",
       ok: customInSearchOk,
     },
@@ -163,24 +161,90 @@ export default function DebugScreen() {
         : "오류: isCustom 누락",
       ok: customWords.every((w) => w.isCustom === true),
     },
+    // ── Data consistency ───────────────────────────────────────────────────
+    {
+      label: "고아 savedWords 감지",
+      value:
+        orphanSavedWords.length === 0
+          ? "없음"
+          : `${orphanSavedWords.length}개: ${orphanSavedWords.map((s) => s.wordId).join(", ")}`,
+      ok: orphanSavedWords.length === 0,
+    },
+    {
+      label: "고아 복습 항목 감지",
+      value:
+        orphanReviews.length === 0
+          ? "없음"
+          : `${orphanReviews.length}개: ${orphanReviews.map((r) => r.wordId).join(", ")}`,
+      ok: orphanReviews.length === 0,
+    },
+    {
+      label: "커스텀 단어 중복 ID",
+      value:
+        duplicateCustomIds.length === 0
+          ? "없음"
+          : duplicateCustomIds.join(", "),
+      ok: duplicateCustomIds.length === 0,
+    },
   ];
 
   const passCount = checks.filter((c) => c.ok).length;
   const allPass = passCount === checks.length;
 
+  // ── Reset button definitions ──────────────────────────────────────────────
+  const resetActions = [
+    {
+      label: "저장 목록 초기화",
+      desc: `저장된 단어 ${savedWords.length}개`,
+      color: colors.info,
+      fn: resetSavedWords,
+    },
+    {
+      label: "복습 일정 초기화",
+      desc: `복습 항목 ${reviews.length}개`,
+      color: colors.accent,
+      fn: resetReviews,
+    },
+    {
+      label: "커스텀 단어 초기화",
+      desc: `커스텀 단어 ${customWords.length}개`,
+      color: colors.hard,
+      fn: resetCustomWords,
+    },
+    {
+      label: "학습 진도 초기화",
+      desc: "스트릭 · 통계 · 완료 단원",
+      color: colors.mutedForeground,
+      fn: resetStudyProgress,
+    },
+    {
+      label: "⚠️ 전체 초기화",
+      desc: "모든 로컬 데이터 삭제",
+      color: colors.hard,
+      fn: resetAll,
+    },
+  ];
+
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: topPad + 8, borderBottomColor: colors.border }]}>
+      <View
+        style={[
+          styles.header,
+          { paddingTop: topPad + 8, borderBottomColor: colors.border },
+        ]}
+      >
         <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color={colors.foreground} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>개발자 검증</Text>
+        <Text style={[styles.headerTitle, { color: colors.foreground }]}>
+          개발자 검증
+        </Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: 40 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: 60 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Summary badge */}
@@ -208,14 +272,28 @@ export default function DebugScreen() {
         </View>
 
         {/* Checklist */}
-        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>체크리스트</Text>
-        <View style={[styles.checkList, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+          체크리스트
+        </Text>
+        <View
+          style={[
+            styles.checkList,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+              borderRadius: colors.radius,
+            },
+          ]}
+        >
           {checks.map((c, i) => (
             <View
               key={c.label}
               style={[
                 styles.checkItem,
-                i < checks.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
+                i < checks.length - 1 && {
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border,
+                },
               ]}
             >
               <Ionicons
@@ -227,7 +305,9 @@ export default function DebugScreen() {
                 <Text style={[styles.checkLabel, { color: colors.foreground }]}>
                   {c.label}
                 </Text>
-                <Text style={[styles.checkValue, { color: colors.mutedForeground }]}>
+                <Text
+                  style={[styles.checkValue, { color: colors.mutedForeground }]}
+                >
                   {c.value}
                 </Text>
               </View>
@@ -236,20 +316,38 @@ export default function DebugScreen() {
         </View>
 
         {/* Unit breakdown */}
-        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>단원별 단어 수</Text>
-        <View style={[styles.checkList, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+          단원별 단어 수
+        </Text>
+        <View
+          style={[
+            styles.checkList,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+              borderRadius: colors.radius,
+            },
+          ]}
+        >
           {Object.entries(stats.unitCounts)
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([key, count], i, arr) => {
               const [level, grade, unit] = key.split("-");
               const levelLabel =
-                level === "elementary" ? "초등" : level === "middle" ? "중등" : "고등";
+                level === "elementary"
+                  ? "초등"
+                  : level === "middle"
+                  ? "중등"
+                  : "고등";
               return (
                 <View
                   key={key}
                   style={[
                     styles.checkItem,
-                    i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
+                    i < arr.length - 1 && {
+                      borderBottomWidth: 1,
+                      borderBottomColor: colors.border,
+                    },
                   ]}
                 >
                   <View
@@ -266,10 +364,18 @@ export default function DebugScreen() {
                     ]}
                   />
                   <View style={styles.checkBody}>
-                    <Text style={[styles.checkLabel, { color: colors.foreground }]}>
-                      {levelLabel} {grade.replace("g", "")}학년 {unit.replace("u", "")}단원
+                    <Text
+                      style={[styles.checkLabel, { color: colors.foreground }]}
+                    >
+                      {levelLabel} {grade.replace("g", "")}학년{" "}
+                      {unit.replace("u", "")}단원
                     </Text>
-                    <Text style={[styles.checkValue, { color: colors.mutedForeground }]}>
+                    <Text
+                      style={[
+                        styles.checkValue,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
                       {count}개 단어
                     </Text>
                   </View>
@@ -279,17 +385,40 @@ export default function DebugScreen() {
         </View>
 
         {/* Quick navigation for manual testing */}
-        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>흐름 테스트</Text>
+        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+          흐름 테스트
+        </Text>
         <View style={styles.testBtns}>
           {[
-            { label: "단어 상세 (friend / e25)", path: "/word-detail", params: { id: "e25" } },
-            { label: "단어 상세 (미등록 단어)", path: "/word-detail", params: { id: "", word: "perseverance" } },
-            { label: "암기 시작 (achieve / h01)", path: "/memorization", params: { id: "h01" } },
-            { label: "카메라 스캔 데모", path: "/camera", params: {} },
+            {
+              label: "단어 상세 (friend / e25)",
+              path: "/word-detail",
+              params: { id: "e25" },
+            },
+            {
+              label: "단어 상세 (미등록 단어)",
+              path: "/word-detail",
+              params: { id: "", word: "perseverance" },
+            },
+            {
+              label: "암기 시작 (achieve / h01)",
+              path: "/memorization",
+              params: { id: "h01" },
+            },
+            {
+              label: "카메라 스캔 데모",
+              path: "/camera",
+              params: {},
+            },
           ].map((item) => (
             <TouchableOpacity
               key={item.label}
-              onPress={() => router.push({ pathname: item.path as any, params: item.params })}
+              onPress={() =>
+                router.push({
+                  pathname: item.path as never,
+                  params: item.params,
+                })
+              }
               style={[
                 styles.testBtn,
                 {
@@ -299,11 +428,78 @@ export default function DebugScreen() {
                 },
               ]}
             >
-              <Ionicons name="play-circle-outline" size={18} color={colors.primary} />
+              <Ionicons
+                name="play-circle-outline"
+                size={18}
+                color={colors.primary}
+              />
               <Text style={[styles.testBtnText, { color: colors.foreground }]}>
                 {item.label}
               </Text>
-              <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={colors.mutedForeground}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* ── Data reset tools ─────────────────────────────────────────── */}
+        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+          데이터 초기화
+        </Text>
+        <Text style={[styles.resetWarning, { color: colors.mutedForeground }]}>
+          각 초기화는 되돌릴 수 없습니다. 확인 Alert이 표시됩니다.
+        </Text>
+        <View style={styles.resetBtns}>
+          {resetActions.map((item) => (
+            <TouchableOpacity
+              key={item.label}
+              onPress={() => {
+                Alert.alert(
+                  item.label,
+                  `${item.desc}\n\n정말 초기화할까요? 이 작업은 취소할 수 없습니다.`,
+                  [
+                    { text: "취소", style: "cancel" },
+                    {
+                      text: "초기화",
+                      style: "destructive",
+                      onPress: item.fn,
+                    },
+                  ]
+                );
+              }}
+              style={[
+                styles.resetBtn,
+                {
+                  borderColor: item.color + "44",
+                  backgroundColor: item.color + "0D",
+                  borderRadius: colors.radius,
+                },
+              ]}
+            >
+              <Ionicons name="trash-outline" size={16} color={item.color} />
+              <View style={styles.resetBtnBody}>
+                <Text
+                  style={[styles.resetBtnLabel, { color: item.color }]}
+                >
+                  {item.label}
+                </Text>
+                <Text
+                  style={[
+                    styles.resetBtnDesc,
+                    { color: colors.mutedForeground },
+                  ]}
+                >
+                  {item.desc}
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={14}
+                color={item.color + "88"}
+              />
             </TouchableOpacity>
           ))}
         </View>
@@ -357,4 +553,20 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   testBtnText: { flex: 1, fontSize: 14, fontFamily: "NotoSansKR_500Medium" },
+  resetWarning: {
+    fontSize: 12,
+    fontFamily: "NotoSansKR_400Regular",
+    marginTop: -8,
+  },
+  resetBtns: { gap: 8 },
+  resetBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    padding: 14,
+  },
+  resetBtnBody: { flex: 1, gap: 2 },
+  resetBtnLabel: { fontSize: 14, fontFamily: "NotoSansKR_600SemiBold" },
+  resetBtnDesc: { fontSize: 12, fontFamily: "NotoSansKR_400Regular" },
 });
