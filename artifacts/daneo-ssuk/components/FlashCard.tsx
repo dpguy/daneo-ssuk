@@ -71,10 +71,10 @@ export function FlashCard({ word, onFlip, speechProps }: Props) {
 
       {/* Front face */}
       <Animated.View
-        // When flipped, the front is rotated away — disable its touches so
-        // the back face (and outer flip zone) can receive them instead.
-        pointerEvents={flipped ? "none" : "box-none"}
         style={[
+          // When flipped, the front is rotated away — disable its touches so
+          // the back face (and outer flip zone) can receive them instead.
+          { pointerEvents: flipped ? "none" : "box-none" },
           styles.card,
           {
             backgroundColor: colors.card,
@@ -114,8 +114,8 @@ export function FlashCard({ word, onFlip, speechProps }: Props) {
 
       {/* Back face */}
       <Animated.View
-        pointerEvents={flipped ? "box-none" : "none"}
         style={[
+          { pointerEvents: flipped ? "box-none" : "none" },
           styles.card,
           styles.back,
           {

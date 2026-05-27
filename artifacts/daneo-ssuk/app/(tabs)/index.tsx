@@ -2,6 +2,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import * as Speech from "expo-speech";
 import React from "react";
 import {
   Platform,
@@ -193,6 +194,30 @@ export default function HomeScreen() {
       {featuredWords.map((w) => (
         <WordCard key={w.id} word={w} />
       ))}
+
+      {/* ── TTS 테스트 버튼 (임시) ─────────────────────────────────────────── */}
+      <TouchableOpacity
+        onPress={() => {
+          console.log("Speaking word: hello");
+          Speech.stop();
+          setTimeout(() => {
+            Speech.speak("hello", {
+              language: "en-US",
+              rate: 0.85,
+              pitch: 1.0,
+              onDone: () => console.log("Speech finished"),
+              onError: () => console.log("Speech error"),
+            });
+          }, 50);
+        }}
+        style={[
+          styles.ttsTestBtn,
+          { backgroundColor: colors.primary, borderRadius: colors.radius },
+        ]}
+      >
+        <Ionicons name="volume-high" size={20} color="#fff" />
+        <Text style={styles.ttsTestText}>🔊 TTS 테스트 — "hello" 재생</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -285,5 +310,14 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 17, fontFamily: "NotoSansKR_700Bold" },
   sectionBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99 },
   sectionBadgeText: { fontSize: 11, fontFamily: "NotoSansKR_600SemiBold" },
+  ttsTestBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 16,
+    marginTop: 16,
+  },
+  ttsTestText: { fontSize: 15, fontFamily: "NotoSansKR_700Bold", color: "#fff" },
 });
 
