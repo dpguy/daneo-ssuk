@@ -3,9 +3,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Alert,
   Platform,
   ScrollView,
   StyleSheet,
@@ -15,13 +14,14 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { EditCustomWordModal, CustomWordFields } from "@/components/EditCustomWordModal";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { SpeechBar } from "@/components/SpeechBar";
 import { WordInfoCard } from "@/components/WordInfoCard";
+import { Word } from "@/constants/mockData";
 import {
   getLevelLabel,
   getRelatedWords,
-  getWordById,
 } from "@/constants/mockData";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
@@ -33,12 +33,13 @@ export default function WordDetailScreen() {
   const router = useRouter();
   // `word` param is passed for unmatched camera words that aren't in the dataset
   const { id, word: wordParam } = useLocalSearchParams<{ id: string; word?: string }>();
-  const { isWordSaved, saveWord, unsaveWord, addReview } = useApp();
+  const { isWordSaved, saveWord, unsaveWord, addReview, findWord } = useApp();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   const { isSpeaking, speechError, speed, setSpeed, toggle, replay, stop } = useSpeech();
 
-  const word = getWordById(id ?? "");
+  // Use findWord so custom words (saved by the user) are also resolved
+  const word = findWord(id ?? "");
   const saved = isWordSaved(id ?? "");
 
   // Stop speech when leaving the screen
@@ -75,7 +76,10 @@ export default function WordDetailScreen() {
       : colors.hard;
 
   const levelLabel = getLevelLabel(word.level);
-  const diffLabel = `${levelLabel} · ${word.grade}학년 ${word.unit}단원`;
+  // Custom words show "내 단어장" badge instead of grade/unit info
+  const diffLabel = word.isCustom
+    ? "내 단어장"
+    : `${levelLabel} · ${word.grade}학년 ${word.unit}단원`;
 
   const handleBookmark = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -306,19 +310,41 @@ function UnknownWordScreen({
   onSpeedChange: (s: SpeechSpeed) => void;
   onReplay: () => void;
 }) {
-  const handleSaveCustom = () => {
-    Alert.alert(
-      "커스텀 단어 저장",
-      `"${word}"를 나만의 단어장에 추가하시겠어요?\n\n(향후 업데이트에서 뜻과 예문을 직접 입력할 수 있습니다)`,
-      [
-        { text: "취소", style: "cancel" },
-        {
-          text: "추가",
-          onPress: () =>
-            Alert.alert("준비 중", "커스텀 단어 저장 기능은 곧 지원됩니다!"),
-        },
-      ]
-    );
+  const router = useRouter();
+  const { saveCustomWord } = useApp();
+  const [editVisible, setEditVisible] = useState(false);
+
+  /** Opens the edit modal so the user can fill in meaning, example, and memory tip. */
+  const handleSaveCustom = () => setEditVisible(true);
+
+  /**
+   * Called when the user confirms in EditCustomWordModal.
+   * Builds a full Word object with sensible defaults, saves it to custom_words
+   * and the review schedule, then replaces this screen with the full Word Detail.
+   */
+  const handleModalSave = async (fields: CustomWordFields) => {
+    const newId = `custom_${Date.now()}`;
+    const newWord: Word = {
+      id: newId,
+      word,
+      pronunciation: "",
+      meaning: fields.meaning.trim() || "뜻을 직접 입력해 주세요",
+      example: fields.example.trim() || "I want to learn this word.",
+      exampleKorean: fields.exampleKorean.trim() || "나는 이 단어를 배우고 싶다.",
+      idiom: "",
+      idiomMeaning: "",
+      memoryTip: fields.memoryTip.trim() || "직접 뜻을 입력하면 더 오래 기억할 수 있어요.",
+      difficulty: "custom",
+      level: "elementary",
+      grade: 0,
+      unit: 0,
+      isCustom: true,
+      createdAt: new Date().toISOString(),
+    };
+    await saveCustomWord(newWord);
+    setEditVisible(false);
+    // Replace this screen with the full Word Detail for the newly saved custom word
+    router.replace({ pathname: "/word-detail", params: { id: newId } });
   };
 
   return (
@@ -419,6 +445,14 @@ function UnknownWordScreen({
           onPress={handleSaveCustom}
         />
       </View>
+
+      {/* Edit modal — shown when the user taps the save button */}
+      <EditCustomWordModal
+        visible={editVisible}
+        wordText={word}
+        onSave={handleModalSave}
+        onClose={() => setEditVisible(false)}
+      />
     </View>
   );
 }

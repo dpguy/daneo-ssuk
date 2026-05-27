@@ -7,13 +7,14 @@ import React, {
   useState,
 } from "react";
 
-import { Review, SavedWord } from "@/constants/mockData";
+import { getWordById, Review, SavedWord, Word } from "@/constants/mockData";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface AppState {
   savedWords: SavedWord[];
   reviews: Review[];
+  customWords: Word[];
   streak: number;
   totalLearned: number;
   todayCount: number;
@@ -43,6 +44,12 @@ interface AppContextType extends AppState {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  // Custom word CRUD
+  saveCustomWord: (word: Word) => Promise<void>;
+  updateCustomWord: (id: string, fields: Partial<Word>) => Promise<void>;
+  deleteCustomWord: (id: string) => Promise<void>;
+  /** Looks up a word by ID in the dataset first, then in customWords. */
+  findWord: (id: string) => Word | undefined;
 }
 
 // ── Spaced Repetition ─────────────────────────────────────────────────────────
@@ -76,6 +83,7 @@ function today(): string {
 const KEYS = {
   savedWords: "dss:savedWords",
   reviews: "dss:reviews",
+  customWords: "dss:customWords",
   streak: "dss:streak",
   totalLearned: "dss:totalLearned",
   todayCount: "dss:todayCount",
@@ -107,6 +115,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>({
     savedWords: [],
     reviews: [],
+    customWords: [],
     streak: 0,
     totalLearned: 0,
     todayCount: 0,
@@ -126,6 +135,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const [
         savedWords,
         reviews,
+        customWords,
         streak,
         totalLearned,
         todayCount,
@@ -137,6 +147,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ] = await Promise.all([
         load<SavedWord[]>(KEYS.savedWords, []),
         load<Review[]>(KEYS.reviews, []),
+        load<Word[]>(KEYS.customWords, []),
         load<number>(KEYS.streak, 0),
         load<number>(KEYS.totalLearned, 0),
         load<number>(KEYS.todayCount, 0),
@@ -162,6 +173,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...prev,
         savedWords,
         reviews,
+        customWords,
         streak: newStreak,
         totalLearned,
         todayCount: newTodayCount,
@@ -340,6 +352,108 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({ ...prev, isLoggedIn: false, userEmail: null, displayName: null }));
   }, []);
 
+  // ── Custom word CRUD ────────────────────────────────────────────────────────
+
+  /**
+   * Saves a brand-new custom word to AsyncStorage, and simultaneously
+   * adds it to the user's saved words and review schedule.
+   */
+  const saveCustomWord = useCallback(
+    async (word: Word) => {
+      // Prevent duplicate saves
+      if (state.customWords.some((w) => w.id === word.id)) return;
+
+      const updatedCustom = [...state.customWords, word];
+
+      // Also add to savedWords so it appears in "저장됨" immediately
+      const alreadySaved = state.savedWords.some((s) => s.wordId === word.id);
+      const updatedSaved = alreadySaved
+        ? state.savedWords
+        : [...state.savedWords, { wordId: word.id, savedAt: new Date().toISOString() }];
+
+      // Also add to review schedule so it appears in memorization queues
+      const alreadyReviewed = state.reviews.some((r) => r.wordId === word.id);
+      const newReview: Review = {
+        wordId: word.id,
+        nextReview: addDays(new Date(), 1).toISOString(),
+        interval: 1,
+        easeFactor: 2.5,
+        repetitions: 0,
+      };
+      const updatedReviews = alreadyReviewed ? state.reviews : [...state.reviews, newReview];
+
+      // Update stats
+      const todayStr = today();
+      const newTotal = alreadyReviewed ? state.totalLearned : state.totalLearned + 1;
+      const newStreak = state.lastActiveDate === todayStr ? state.streak : state.streak + 1;
+      const newTodayCount = state.lastActiveDate === todayStr ? state.todayCount + 1 : 1;
+      const updatedDailyWords = {
+        ...state.dailyWords,
+        [todayStr]: (state.dailyWords[todayStr] ?? 0) + 1,
+      };
+
+      setState((prev) => ({
+        ...prev,
+        customWords: updatedCustom,
+        savedWords: updatedSaved,
+        reviews: updatedReviews,
+        totalLearned: newTotal,
+        streak: newStreak,
+        todayCount: newTodayCount,
+        lastActiveDate: todayStr,
+        dailyWords: updatedDailyWords,
+      }));
+
+      await Promise.all([
+        save(KEYS.customWords, updatedCustom),
+        save(KEYS.savedWords, updatedSaved),
+        save(KEYS.reviews, updatedReviews),
+        save(KEYS.totalLearned, newTotal),
+        save(KEYS.streak, newStreak),
+        save(KEYS.todayCount, newTodayCount),
+        save(KEYS.lastActiveDate, todayStr),
+        save(KEYS.dailyWords, updatedDailyWords),
+      ]);
+    },
+    [state]
+  );
+
+  /**
+   * Updates specific fields of an existing custom word (e.g. meaning, example, memoryTip).
+   */
+  const updateCustomWord = useCallback(
+    async (id: string, fields: Partial<Word>) => {
+      const updated = state.customWords.map((w) =>
+        w.id === id ? { ...w, ...fields } : w
+      );
+      setState((prev) => ({ ...prev, customWords: updated }));
+      await save(KEYS.customWords, updated);
+    },
+    [state.customWords]
+  );
+
+  /**
+   * Removes a custom word from the word list (does not remove from reviews/savedWords).
+   */
+  const deleteCustomWord = useCallback(
+    async (id: string) => {
+      const updated = state.customWords.filter((w) => w.id !== id);
+      setState((prev) => ({ ...prev, customWords: updated }));
+      await save(KEYS.customWords, updated);
+    },
+    [state.customWords]
+  );
+
+  /**
+   * Looks up a word by ID — checks the dataset first, then custom words.
+   * Use this instead of getWordById in any screen that should support custom words.
+   */
+  const findWord = useCallback(
+    (id: string): Word | undefined =>
+      getWordById(id) ?? state.customWords.find((w) => w.id === id),
+    [state.customWords]
+  );
+
   return (
     <AppContext.Provider
       value={{
@@ -357,6 +471,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         signIn,
         signUp,
         signOut,
+        saveCustomWord,
+        updateCustomWord,
+        deleteCustomWord,
+        findWord,
       }}
     >
       {children}

@@ -58,28 +58,31 @@ export default function QuizScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { ids } = useLocalSearchParams<{ ids?: string }>();
-  const { reviews } = useApp();
+  const { reviews, customWords } = useApp();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   const inputRef = useRef<TextInput>(null);
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
-  // Build quiz words
+  // Merge dataset words with user's custom words for all ID lookups
+  const allWords = useMemo(() => [...MOCK_WORDS, ...customWords], [customWords]);
+
+  // Build quiz words — includes custom words saved by the user
   const quizWords: Word[] = useMemo(() => {
     let wordList: Word[];
     if (ids) {
       wordList = ids
         .split(",")
-        .map((wid) => MOCK_WORDS.find((w) => w.id === wid))
+        .map((wid) => allWords.find((w) => w.id === wid))
         .filter(Boolean) as Word[];
     } else {
       wordList = reviews
-        .map((r) => MOCK_WORDS.find((w) => w.id === r.wordId))
+        .map((r) => allWords.find((w) => w.id === r.wordId))
         .filter(Boolean) as Word[];
     }
     return shuffle(wordList);
-  }, []);
+  }, [ids, reviews, allWords]);
 
   const [qIdx, setQIdx] = useState(0);
   const [input, setInput] = useState("");

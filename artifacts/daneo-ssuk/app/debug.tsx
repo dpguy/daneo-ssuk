@@ -20,7 +20,7 @@ export default function DebugScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { reviews, savedWords } = useApp();
+  const { reviews, savedWords, customWords, findWord } = useApp();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   const stats = getVocabStats();
@@ -30,11 +30,30 @@ export default function DebugScreen() {
   const testWord = getWordById(testWordId);
   const wordDetailOk = !!testWord && testWord.word === "friend";
 
+  // findWord should resolve both dataset words and custom words
+  const findWordDatasetOk = !!findWord("e25");
+  const findWordCustomOk =
+    customWords.length === 0
+      ? true // no custom words yet — considered passing
+      : !!findWord(customWords[0].id);
+
   // Check if memorization would find a review word
   const memorizationOk = reviews.length >= 0; // always true (empty is valid)
 
   // Check if review schedule saves
   const reviewScheduleOk = typeof reviews === "object";
+
+  // Custom word in search: if any custom words exist, check one is in savedWords
+  const customInSearchOk =
+    customWords.length === 0
+      ? true
+      : savedWords.some((s) => s.wordId === customWords[0].id);
+
+  // Custom word in review: if any custom words exist, check one is in reviews
+  const customInReviewOk =
+    customWords.length === 0
+      ? true
+      : reviews.some((r) => r.wordId === customWords[0].id);
 
   // Check words have required fields
   const wordsWithMissingFields = MOCK_WORDS.filter(
@@ -42,9 +61,8 @@ export default function DebugScreen() {
   );
 
   // Check for duplicate IDs
-  const ids = MOCK_WORDS.map((w) => w.id);
-  const uniqueIds = new Set(ids);
-  const duplicateIds = ids.filter((id, i) => ids.indexOf(id) !== i);
+  const wordIds = MOCK_WORDS.map((w) => w.id);
+  const duplicateIds = wordIds.filter((id, i) => wordIds.indexOf(id) !== i);
 
   const checks: { label: string; value: string; ok: boolean }[] = [
     {
@@ -104,6 +122,46 @@ export default function DebugScreen() {
         ? `정상 (저장됨 ${savedWords.length}개, 복습 ${reviews.length}개)`
         : "오류",
       ok: reviewScheduleOk,
+    },
+    // ── Custom word checks ───────────────────────────────────────────────
+    {
+      label: "커스텀 단어 수",
+      value: `${customWords.length}개 저장됨`,
+      ok: true, // informational — always passes
+    },
+    {
+      label: "커스텀 단어 findWord 조회",
+      value: findWordDatasetOk && findWordCustomOk
+        ? "정상 (데이터셋 + 커스텀 모두 조회 가능)"
+        : "오류: findWord 실패",
+      ok: findWordDatasetOk && findWordCustomOk,
+    },
+    {
+      label: "커스텀 단어 → 저장됨 탭 연결",
+      value: customInSearchOk
+        ? customWords.length === 0
+          ? "커스텀 단어 없음 (저장하면 자동 표시)"
+          : `정상 (${customWords.length}개 중 저장됨 확인)`
+        : "오류: savedWords 미포함",
+      ok: customInSearchOk,
+    },
+    {
+      label: "커스텀 단어 → 복습 스케줄 연결",
+      value: customInReviewOk
+        ? customWords.length === 0
+          ? "커스텀 단어 없음 (저장하면 자동 등록)"
+          : `정상 (${customWords.length}개 복습 큐 포함)`
+        : "오류: reviews 미포함",
+      ok: customInReviewOk,
+    },
+    {
+      label: "커스텀 단어 isCustom 필드",
+      value: customWords.every((w) => w.isCustom === true)
+        ? customWords.length === 0
+          ? "커스텀 단어 없음"
+          : "정상 (모든 커스텀 단어 isCustom=true)"
+        : "오류: isCustom 누락",
+      ok: customWords.every((w) => w.isCustom === true),
     },
   ];
 

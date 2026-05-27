@@ -13,7 +13,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FlashCard } from "@/components/FlashCard";
-import { MOCK_WORDS, getWordById } from "@/constants/mockData";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useSpeech } from "@/hooks/useSpeech";
@@ -25,14 +24,15 @@ export default function MemorizationScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id, mode } = useLocalSearchParams<{ id: string; mode?: string }>();
-  const { updateReview, getTodayReviews, addReview } = useApp();
+  const { updateReview, getTodayReviews, addReview, findWord } = useApp();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   const { isSpeaking, speechError, speed, setSpeed, speak, replay, stop } = useSpeech();
 
-  // If mode is "review", show the full today's review queue
+  // If mode is "review", show the full today's review queue.
+  // findWord handles both dataset words and saved custom words.
   const reviewQueue = mode === "review"
-    ? getTodayReviews().map((r) => MOCK_WORDS.find((w) => w.id === r.wordId)).filter(Boolean)
+    ? getTodayReviews().map((r) => findWord(r.wordId)).filter(Boolean)
     : null;
 
   const [queueIndex, setQueueIndex] = useState(0);
@@ -42,7 +42,7 @@ export default function MemorizationScreen() {
 
   const currentWord = reviewQueue
     ? reviewQueue[queueIndex]
-    : getWordById(id ?? "");
+    : findWord(id ?? "");
 
   // Auto-play pronunciation when word changes
   useEffect(() => {

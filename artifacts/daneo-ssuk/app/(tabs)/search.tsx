@@ -1,6 +1,6 @@
 // SearchScreen — search vocabulary, recent, popular, saved
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   FlatList,
   Platform,
@@ -22,13 +22,19 @@ type Tab = "recent" | "popular" | "saved";
 export default function SearchScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { savedWords } = useApp();
+  const { savedWords, customWords } = useApp();
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("recent");
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
+  // Merge dataset words with user's custom words so search covers everything
+  const allWords = useMemo(
+    () => [...MOCK_WORDS, ...customWords],
+    [customWords]
+  );
+
   const searchResults: Word[] = query.trim()
-    ? MOCK_WORDS.filter(
+    ? allWords.filter(
         (w) =>
           w.word.toLowerCase().includes(query.toLowerCase()) ||
           w.meaning.includes(query)
@@ -36,7 +42,21 @@ export default function SearchScreen() {
     : [];
 
   const popularWords = MOCK_WORDS.filter((w) => POPULAR_WORDS.includes(w.word));
-  const savedWordsList = MOCK_WORDS.filter((w) => savedWords.some((s) => s.wordId === w.id));
+
+  // Show saved words sorted by most recently saved (includes custom words)
+  const savedWordsList = useMemo(() => {
+    const sorted = [...savedWords].sort(
+      (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
+    );
+    return sorted
+      .map((s) => allWords.find((w) => w.id === s.wordId))
+      .filter(Boolean) as Word[];
+  }, [savedWords, allWords]);
+
+  // "최근" tab: recently saved words (up to 10), or first 5 words if nothing saved
+  const recentWords = savedWordsList.length > 0
+    ? savedWordsList.slice(0, 10)
+    : MOCK_WORDS.slice(0, 5);
 
   const TABS: { id: Tab; label: string }[] = [
     { id: "recent", label: "최근" },
@@ -45,7 +65,11 @@ export default function SearchScreen() {
   ];
 
   const displayWords =
-    activeTab === "popular" ? popularWords : activeTab === "saved" ? savedWordsList : MOCK_WORDS.slice(0, 5);
+    activeTab === "popular"
+      ? popularWords
+      : activeTab === "saved"
+      ? savedWordsList
+      : recentWords;
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>

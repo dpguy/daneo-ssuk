@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { MOCK_WORDS, Word, getWordById } from "@/constants/mockData";
+import { MOCK_WORDS, Word } from "@/constants/mockData";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -257,26 +257,29 @@ export default function SpellingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id, ids } = useLocalSearchParams<{ id?: string; ids?: string }>();
-  const { reviews } = useApp();
+  const { reviews, customWords } = useApp();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
+
+  // Merge dataset words with user's custom words for all ID lookups
+  const allWords = useMemo(() => [...MOCK_WORDS, ...customWords], [customWords]);
 
   // ── Build word queue ──────────────────────────────────────────────────────
   const wordQueue: Word[] = useMemo(() => {
     if (ids) {
       return ids
         .split(",")
-        .map((wid) => MOCK_WORDS.find((w) => w.id === wid))
+        .map((wid) => allWords.find((w) => w.id === wid))
         .filter(Boolean) as Word[];
     }
     if (id) {
-      const w = getWordById(id);
+      const w = allWords.find((w) => w.id === id);
       return w ? [w] : [];
     }
     return reviews
-      .map((r) => MOCK_WORDS.find((w) => w.id === r.wordId))
+      .map((r) => allWords.find((w) => w.id === r.wordId))
       .filter(Boolean) as Word[];
-  }, []);
+  }, [ids, id, reviews, allWords]);
 
   // ── Per-word state ────────────────────────────────────────────────────────
   const [queueIdx, setQueueIdx] = useState(0);

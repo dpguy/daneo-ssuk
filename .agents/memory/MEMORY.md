@@ -1,3 +1,4 @@
 - [Camera demo OCR flow](camera-ocr-flow.md) — DEMO_RESULTS uses real new IDs (e25,m08,h01,m03,h03,h09,m04,m01) + 4 intentional unknowns (empty id); key=id or "unknown:word".
-- [Word detail fallback](word-detail-fallback.md) — word-detail.tsx accepts `word` param as fallback for unmatched camera words; shows UnknownWordScreen with TTS + custom save stub.
+- [Word detail fallback](word-detail-fallback.md) — word-detail.tsx accepts `word` param as fallback for unmatched camera words; shows UnknownWordScreen with TTS + real custom save flow (EditCustomWordModal → saveCustomWord → router.replace to full detail).
 - [Vocab dataset IDs](vocab-ids.md) — e01–e100 elementary, m01–m100 middle, h01–h100 high; all zero-padded; 4 units/grade; mockData exports getVocabStats() for debug screen.
+- [Custom word architecture](custom-words.md) — custom words persisted under dss:customWords; AppContext exposes saveCustomWord/updateCustomWord/deleteCustomWord/findWord; all screens use findWord() or allWords=[...MOCK_WORDS,...customWords] instead of MOCK_WORDS.find/getWordById.

@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { formatNextReview, MOCK_WORDS } from "@/constants/mockData";
+import { formatNextReview } from "@/constants/mockData";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -52,7 +52,7 @@ export default function ReviewScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { getTodayReviews, getUpcomingReviews, reviews, totalLearned } = useApp();
+  const { getTodayReviews, getUpcomingReviews, reviews, totalLearned, findWord } = useApp();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   const todayReviews = getTodayReviews();
@@ -122,7 +122,7 @@ export default function ReviewScreen() {
           onPress={() => {
             if (todayReviews.length === 0) return;
             const first = todayReviews[0];
-            const word = MOCK_WORDS.find((w) => w.id === first.wordId);
+            const word = findWord(first.wordId);
             if (word)
               router.push({
                 pathname: "/memorization",
@@ -240,7 +240,7 @@ export default function ReviewScreen() {
             예정된 복습
           </Text>
           {upcomingReviews.map((r) => {
-            const word = MOCK_WORDS.find((w) => w.id === r.wordId);
+            const word = findWord(r.wordId);
             if (!word) return null;
             const dateLabel = formatNextReview(r.nextReview);
             const nextDate = new Date(r.nextReview);

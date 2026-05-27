@@ -1,0 +1,93 @@
+Next task: Implement real custom word saving.
+
+Current status:
+- Camera demo scan works.
+- Registered words open real Word Detail.
+- Unregistered words show fallback screen.
+- Custom word save button currently only shows Alert.
+- AsyncStorage is already used.
+- Do not connect external APIs yet.
+- Do not remove current features.
+
+Goal:
+Make unregistered words save properly as custom words.
+
+Requirements:
+
+1. Create custom word storage
+Use AsyncStorage key:
+custom_words
+
+Each custom word should include:
+- id
+- word
+- pronunciation
+- meaning
+- example
+- example_ko
+- phrase
+- memory_tip
+- difficulty
+- grade
+- unit
+- related_words
+- category
+- is_custom
+- created_at
+
+2. When user taps "커스텀 단어로 저장"
+- Save the unregistered word to custom_words
+- Also add it to saved words
+- Show success message:
+"내 단어장에 저장되었습니다"
+
+3. Custom word fallback data
+If meaning is unknown, use:
+- meaning: "뜻을 직접 입력해 주세요"
+- example: "I want to learn this word."
+- example_ko: "나는 이 단어를 배우고 싶다."
+- memory_tip: "직접 뜻을 입력하면 더 오래 기억할 수 있어요."
+- difficulty: "custom"
+
+4. Add edit screen or modal
+Allow user to edit:
+- Korean meaning
+- example sentence
+- memory tip
+
+5. Search integration
+Custom words must appear in Search tab under:
+- 저장됨
+- 최근
+
+6. Word Detail integration
+When a saved custom word is tapped, show the normal Word Detail layout.
+
+7. Memorization integration
+Custom words must work with:
+- Flashcard
+- Spelling practice
+- Quiz
+- Review schedule
+
+8. Review integration
+Easy / Hard / Forgot buttons must schedule custom words too.
+
+9. Debug checklist
+Add custom word checks:
+- custom_words count
+- custom word save works
+- custom word appears in search
+- custom word opens word detail
+- custom word can be memorized
+- custom word appears in review
+
+10. Keep Korean UI.
+11. Keep current design.
+12. Add comments to important functions.
+13. Run typecheck after changes.
+14. Provide summary:
+- Files changed
+- New functions added
+- How to test
+- Known issues
