@@ -21,10 +21,12 @@ interface AppState {
   lastActiveDate: string | null;
   onboardingDone: boolean;
   isLoaded: boolean;
-  // Auth — false = guest mode; set to true after Supabase sign-in
   isLoggedIn: boolean;
   userEmail: string | null;
   displayName: string | null;
+  // Per-day history (date string "YYYY-MM-DD" → count)
+  dailyWords: Record<string, number>;
+  dailyReviews: Record<string, number>;
 }
 
 interface AppContextType extends AppState {
@@ -38,7 +40,6 @@ interface AppContextType extends AppState {
   markUnitComplete: (grade: number, unit: number) => Promise<void>;
   isUnitComplete: (grade: number, unit: number) => boolean;
   completeOnboarding: () => Promise<void>;
-  // Auth actions — wired to Supabase when available
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -81,6 +82,8 @@ const KEYS = {
   completedUnits: "dss:completedUnits",
   lastActiveDate: "dss:lastActiveDate",
   onboardingDone: "dss:onboardingDone",
+  dailyWords: "dss:dailyWords",
+  dailyReviews: "dss:dailyReviews",
 };
 
 async function load<T>(key: string, fallback: T): Promise<T> {
@@ -114,6 +117,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     isLoggedIn: false,
     userEmail: null,
     displayName: null,
+    dailyWords: {},
+    dailyReviews: {},
   });
 
   useEffect(() => {
@@ -127,6 +132,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         completedUnits,
         lastActiveDate,
         onboardingDone,
+        dailyWords,
+        dailyReviews,
       ] = await Promise.all([
         load<SavedWord[]>(KEYS.savedWords, []),
         load<Review[]>(KEYS.reviews, []),
@@ -136,9 +143,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         load<string[]>(KEYS.completedUnits, []),
         load<string | null>(KEYS.lastActiveDate, null),
         load<boolean>(KEYS.onboardingDone, false),
+        load<Record<string, number>>(KEYS.dailyWords, {}),
+        load<Record<string, number>>(KEYS.dailyReviews, {}),
       ]);
 
-      // Streak: reset if gap > 1 day
       const todayStr = today();
       let newStreak = streak;
       if (lastActiveDate) {
@@ -161,6 +169,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         lastActiveDate,
         onboardingDone,
         isLoaded: true,
+        dailyWords,
+        dailyReviews,
       }));
     })();
   }, []);
@@ -215,6 +225,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newTotal = state.totalLearned + 1;
       const updatedReviews = [...state.reviews, newReview];
 
+      // Track daily word count
+      const updatedDailyWords = {
+        ...state.dailyWords,
+        [todayStr]: (state.dailyWords[todayStr] ?? 0) + 1,
+      };
+
       setState((prev) => ({
         ...prev,
         reviews: updatedReviews,
@@ -222,6 +238,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         streak: newStreak,
         totalLearned: newTotal,
         lastActiveDate: todayStr,
+        dailyWords: updatedDailyWords,
       }));
 
       await Promise.all([
@@ -230,6 +247,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         save(KEYS.streak, newStreak),
         save(KEYS.totalLearned, newTotal),
         save(KEYS.lastActiveDate, todayStr),
+        save(KEYS.dailyWords, updatedDailyWords),
       ]);
     },
     [state]
@@ -254,10 +272,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           : r
       );
 
-      setState((prev) => ({ ...prev, reviews: updated }));
-      await save(KEYS.reviews, updated);
+      // Track daily review completions
+      const todayStr = today();
+      const updatedDailyReviews = {
+        ...state.dailyReviews,
+        [todayStr]: (state.dailyReviews[todayStr] ?? 0) + 1,
+      };
+
+      setState((prev) => ({
+        ...prev,
+        reviews: updated,
+        dailyReviews: updatedDailyReviews,
+      }));
+      await Promise.all([
+        save(KEYS.reviews, updated),
+        save(KEYS.dailyReviews, updatedDailyReviews),
+      ]);
     },
-    [state.reviews]
+    [state.reviews, state.dailyReviews]
   );
 
   const getTodayReviews = useCallback((): Review[] => {
@@ -290,15 +322,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [state.completedUnits]
   );
 
-  // ── Auth (guest-first; wire to Supabase when EXPO_PUBLIC_SUPABASE_URL is set) ──
-
   const signIn = useCallback(
     async (_email: string, _password: string): Promise<{ error: string | null }> => {
-      // TODO: replace stub with Supabase sign-in when env vars are set
-      // import { getSupabase } from "@/services/supabase";
-      // const { data, error } = await getSupabase().auth.signInWithPassword({ email, password });
-      // if (error) return { error: error.message };
-      // setState(prev => ({ ...prev, isLoggedIn: true, userEmail: data.user.email ?? null }));
       return { error: "Supabase 연결 후 사용 가능합니다" };
     },
     []
@@ -306,14 +331,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = useCallback(
     async (_email: string, _password: string): Promise<{ error: string | null }> => {
-      // TODO: replace stub with Supabase sign-up when env vars are set
       return { error: "Supabase 연결 후 사용 가능합니다" };
     },
     []
   );
 
   const signOut = useCallback(async () => {
-    // TODO: replace stub with Supabase sign-out
     setState((prev) => ({ ...prev, isLoggedIn: false, userEmail: null, displayName: null }));
   }, []);
 

@@ -33,6 +33,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "person", selected: "person.fill" }} />
         <Label>프로필</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="parent">
+        <Icon sf={{ default: "shield.checkered", selected: "shield.checkered" }} />
+        <Label>부모님</Label>
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
@@ -131,6 +135,18 @@ function ClassicTabLayout() {
               <SymbolView name="person.fill" tintColor={color} size={22} />
             ) : (
               <Feather name="user" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="parent"
+        options={{
+          title: "부모님",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="shield.checkered" tintColor={color} size={22} />
+            ) : (
+              <Ionicons name="shield-checkmark-outline" size={22} color={color} />
             ),
         }}
       />
