@@ -2,6 +2,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Speech from "expo-speech";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -119,6 +120,7 @@ export default function QuizScreen() {
   };
 
   const handleNext = () => {
+    Speech.stop();
     if (qIdx + 1 < total) {
       setQIdx((i) => i + 1);
       setInput("");
@@ -128,6 +130,20 @@ export default function QuizScreen() {
     } else {
       setQuizDone(true);
     }
+  };
+
+  const handleSpeak = (word: string) => {
+    console.log(`Speaking word: ${word}`);
+    Speech.stop();
+    setTimeout(() => {
+      Speech.speak(word, {
+        language: "en-US",
+        rate: 0.85,
+        pitch: 1.0,
+        onDone: () => console.log("Speech finished"),
+        onError: () => console.log("Speech error"),
+      });
+    }, 50);
   };
 
   const handleSkip = () => {
@@ -378,6 +394,13 @@ export default function QuizScreen() {
               <Text style={[styles.feedbackText, { color: colors.primary }]}>
                 정답!
               </Text>
+              <TouchableOpacity
+                onPress={() => handleSpeak(currentWord.word)}
+                hitSlop={12}
+                style={[styles.speakBtn, { backgroundColor: colors.primary + "18" }]}
+              >
+                <Ionicons name="volume-high" size={16} color={colors.primary} />
+              </TouchableOpacity>
             </View>
           )}
           {isWrong && (
@@ -389,6 +412,13 @@ export default function QuizScreen() {
                   {currentWord.word}
                 </Text>
               </Text>
+              <TouchableOpacity
+                onPress={() => handleSpeak(currentWord.word)}
+                hitSlop={12}
+                style={[styles.speakBtn, { backgroundColor: colors.forgot + "18" }]}
+              >
+                <Ionicons name="volume-high" size={16} color={colors.forgot} />
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -557,6 +587,7 @@ const styles = StyleSheet.create({
   hintChip: { fontSize: 13, fontFamily: "NotoSansKR_500Medium", letterSpacing: 1 },
   feedbackRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
   feedbackText: { fontSize: 14, fontFamily: "NotoSansKR_600SemiBold" },
+  speakBtn: { padding: 6, borderRadius: 8 },
   // Input
   inputWrap: {
     flexDirection: "row",

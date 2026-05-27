@@ -61,9 +61,19 @@ export function FlashCard({ word, onFlip, speechProps }: Props) {
   };
 
   return (
-    <TouchableOpacity onPress={handleFlip} activeOpacity={1} style={styles.container}>
-      {/* Front */}
+    <View style={styles.container}>
+      {/* Flip zone — full-card tap target, below speech bar in z-order */}
+      <TouchableOpacity
+        onPress={handleFlip}
+        activeOpacity={1}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Front face */}
       <Animated.View
+        // When flipped, the front is rotated away — disable its touches so
+        // the back face (and outer flip zone) can receive them instead.
+        pointerEvents={flipped ? "none" : "box-none"}
         style={[
           styles.card,
           {
@@ -78,7 +88,6 @@ export function FlashCard({ word, onFlip, speechProps }: Props) {
         <Text style={[styles.hint, { color: colors.mutedForeground }]}>탭하여 뒤집기</Text>
         <Text style={[styles.frontWord, { color: colors.foreground }]}>{word.word}</Text>
 
-        {/* Speech bar — compact mode inside card */}
         {speechProps ? (
           <View style={styles.speechWrapper}>
             <SpeechBar
@@ -103,8 +112,9 @@ export function FlashCard({ word, onFlip, speechProps }: Props) {
         </View>
       </Animated.View>
 
-      {/* Back */}
+      {/* Back face */}
       <Animated.View
+        pointerEvents={flipped ? "box-none" : "none"}
         style={[
           styles.card,
           styles.back,
@@ -130,7 +140,7 @@ export function FlashCard({ word, onFlip, speechProps }: Props) {
           <Text style={[styles.tipText, { color: colors.foreground }]}>{word.memoryTip}</Text>
         </View>
       </Animated.View>
-    </TouchableOpacity>
+    </View>
   );
 }
 

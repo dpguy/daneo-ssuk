@@ -2,6 +2,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Speech from "expo-speech";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -305,6 +306,21 @@ export default function SpellingScreen() {
   const currentAbsPos = typableIndices[typed.length] ?? wordLetters.length;
   const isWordDone = typed.length === typableIndices.length;
 
+  // ── Speech ────────────────────────────────────────────────────────────────
+  const handleSpeak = (word: string) => {
+    console.log(`Speaking word: ${word}`);
+    Speech.stop();
+    setTimeout(() => {
+      Speech.speak(word, {
+        language: "en-US",
+        rate: 0.85,
+        pitch: 1.0,
+        onDone: () => console.log("Speech finished"),
+        onError: () => console.log("Speech error"),
+      });
+    }, 50);
+  };
+
   // ── Reset for new word ────────────────────────────────────────────────────
   const resetForWord = () => {
     setTyped([]);
@@ -559,9 +575,18 @@ export default function SpellingScreen() {
             <Text style={[styles.reviewWord, { color: colors.primary }]}>
               {currentWord.word}
             </Text>
-            <Text style={[styles.reviewPron, { color: colors.mutedForeground }]}>
-              {currentWord.pronunciation}
-            </Text>
+            <View style={styles.pronRow}>
+              <Text style={[styles.reviewPron, { color: colors.mutedForeground }]}>
+                {currentWord.pronunciation}
+              </Text>
+              <TouchableOpacity
+                onPress={() => handleSpeak(currentWord.word)}
+                hitSlop={12}
+                style={[styles.pronSpeakBtn, { backgroundColor: colors.primary + "18" }]}
+              >
+                <Ionicons name="volume-high" size={16} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
             <View style={[styles.reviewDivider, { backgroundColor: colors.border }]} />
             <Text style={[styles.reviewLabel, { color: colors.mutedForeground }]}>뜻</Text>
             <Text style={[styles.reviewMeaning, { color: colors.foreground }]}>
@@ -636,9 +661,18 @@ export default function SpellingScreen() {
             <Text style={[styles.quizWord, { color: colors.foreground }]}>
               {currentWord.word}
             </Text>
-            <Text style={[styles.quizPron, { color: colors.mutedForeground }]}>
-              {currentWord.pronunciation}
-            </Text>
+            <View style={styles.pronRow}>
+              <Text style={[styles.quizPron, { color: colors.mutedForeground }]}>
+                {currentWord.pronunciation}
+              </Text>
+              <TouchableOpacity
+                onPress={() => handleSpeak(currentWord.word)}
+                hitSlop={12}
+                style={[styles.pronSpeakBtn, { backgroundColor: colors.primary + "18" }]}
+              >
+                <Ionicons name="volume-high" size={16} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* 4 meaning options */}
@@ -830,6 +864,8 @@ const styles = StyleSheet.create({
   reviewLabel: { fontSize: 11, fontFamily: "NotoSansKR_500Medium" },
   reviewWord: { fontSize: 32, fontFamily: "NotoSansKR_700Bold", letterSpacing: -1 },
   reviewPron: { fontSize: 14, fontFamily: "NotoSansKR_400Regular" },
+  pronRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  pronSpeakBtn: { padding: 6, borderRadius: 8 },
   reviewDivider: { width: "100%", height: 1, marginVertical: 8 },
   reviewMeaning: { fontSize: 20, fontFamily: "NotoSansKR_700Bold", textAlign: "center" },
 

@@ -33,26 +33,36 @@ export function useSpeech(): UseSpeechReturn {
   }, []);
 
   const speak = useCallback((text: string, overrideSpeed?: SpeechSpeed) => {
+    console.log(`Speaking word: ${text}`);
     setSpeechError(false);
+
+    // Stop any current speech first, then wait a tick before starting new speech
+    // (prevents race condition on some Android devices)
     Speech.stop();
     setIsSpeaking(false);
 
     const rate = overrideSpeed ?? speedRef.current;
     lastWordRef.current = text;
 
-    setIsSpeaking(true);
-    Speech.speak(text, {
-      language: "en-US",
-      rate,
-      pitch: 1.0,
-      onStart: () => setIsSpeaking(true),
-      onDone: () => setIsSpeaking(false),
-      onStopped: () => setIsSpeaking(false),
-      onError: () => {
-        setIsSpeaking(false);
-        setSpeechError(true);
-      },
-    });
+    setTimeout(() => {
+      setIsSpeaking(true);
+      Speech.speak(text, {
+        language: "en-US",
+        rate,
+        pitch: 1.0,
+        onStart: () => setIsSpeaking(true),
+        onDone: () => {
+          console.log("Speech finished");
+          setIsSpeaking(false);
+        },
+        onStopped: () => setIsSpeaking(false),
+        onError: (err) => {
+          console.log("Speech error", err);
+          setIsSpeaking(false);
+          setSpeechError(true);
+        },
+      });
+    }, 50);
   }, []);
 
   const replay = useCallback(() => {
