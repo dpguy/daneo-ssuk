@@ -23,3 +23,9 @@ id = "MNjlqW7xBbBaAhWcfr5Nw"
 uri = "file://expo-qr.png"
 type = "image"
 title = "Expo Go QR 코드"
+
+[[outputs]]
+id = "BoaNak5OP53Wr395jCHmv"
+uri = "file://backups/단어쑥_v0.1_beta_20260527.zip"
+type = "unspecified"
+title = "단어쑥 v0.1 소스 백업 (2026-05-27)"
