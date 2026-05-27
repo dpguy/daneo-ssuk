@@ -1,20 +1,16 @@
-// 단어쑥 vocabulary dataset — 1,500 words (Elementary 300, Middle 500, High 700)
+// 단어쑥 vocabulary dataset — 300 words (Elementary 100, Middle 100, High 100)
 
 export type { Word, SavedWord, Review } from "./wordTypes";
 import type { Word } from "./wordTypes";
 
 import { ELEMENTARY_WORDS } from "./vocabulary/elementary";
 import { MIDDLE_WORDS } from "./vocabulary/middle";
-import { MIDDLE_REST_WORDS } from "./vocabulary/middle_rest";
 import { HIGH1_WORDS } from "./vocabulary/high1";
-import { HIGH2_WORDS } from "./vocabulary/high2";
 
 export const MOCK_WORDS: Word[] = [
   ...ELEMENTARY_WORDS,
   ...MIDDLE_WORDS,
-  ...MIDDLE_REST_WORDS,
   ...HIGH1_WORDS,
-  ...HIGH2_WORDS,
 ];
 
 // ── Helpers & meta ────────────────────────────────────────────────────────────
@@ -23,34 +19,34 @@ export const TEXTBOOK_STRUCTURE = {
   elementary: {
     label: "초등학교",
     grades: [3, 4, 5, 6],
-    unitsPerGrade: 8,
+    unitsPerGrade: 4,
   },
   middle: {
     label: "중학교",
     grades: [1, 2, 3],
-    unitsPerGrade: 10,
+    unitsPerGrade: 4,
   },
   high: {
     label: "고등학교",
     grades: [1, 2, 3],
-    unitsPerGrade: 16,
+    unitsPerGrade: 4,
   },
 };
 
 export const POPULAR_WORDS = [
-  "apple", "important", "analyze", "courage", "environment",
-  "achieve", "evidence", "challenge", "perseverance", "innovative",
+  "apple", "achieve", "discover", "courage", "community",
+  "inspire", "equality", "creative", "global", "honest",
 ];
 
 export const DEMO_SCAN_WORDS = [
-  { word: "apple",        id: "e1"  },
-  { word: "important",   id: "m1"  },
-  { word: "analyze",     id: "h1"  },
-  { word: "friendship",  id: "e7"  },
-  { word: "significant", id: "h5"  },
-  { word: "remember",    id: "m3"  },
-  { word: "challenge",   id: "m42" },
-  { word: "perseverance",id: "h6"  },
+  { word: "apple",     id: "e32"  },
+  { word: "creative",  id: "m04"  },
+  { word: "achieve",   id: "h01"  },
+  { word: "brave",     id: "m03"  },
+  { word: "equality",  id: "h09"  },
+  { word: "evidence",  id: "m37"  },
+  { word: "inspire",   id: "m100" },
+  { word: "community", id: "m42"  },
 ];
 
 export const getWordsByLevel = (level: "elementary" | "middle" | "high") =>

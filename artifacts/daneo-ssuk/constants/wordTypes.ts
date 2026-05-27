@@ -12,6 +12,7 @@ export interface Word {
   level: "elementary" | "middle" | "high";
   grade: number;
   unit: number;
+  category?: string;
   relatedWords?: string[];
 }
 
