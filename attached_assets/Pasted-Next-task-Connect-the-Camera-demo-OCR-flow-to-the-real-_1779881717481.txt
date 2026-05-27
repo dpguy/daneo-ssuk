@@ -1,0 +1,88 @@
+Next task: Connect the Camera demo OCR flow to the real vocabulary dataset.
+
+Current status:
+- TTS pronunciation works.
+- Vocabulary dataset exists or is being expanded.
+- App uses AsyncStorage.
+- Do not connect real OCR yet.
+- Do not connect external APIs yet.
+- Do not remove working features.
+
+Goal:
+When the user taps Demo Scan on the Camera screen, detected words should be matched against the vocabulary dataset.
+
+Requirements:
+
+1. Camera demo scan
+- Show a fake scanned page
+- Detect 8 to 12 English words
+- Display detected words as selectable chips
+- Each chip should show:
+  - English word
+  - level badge: 초등 / 중등 / 고등
+  - whether it exists in the local vocabulary database
+
+2. Word matching
+- Match detected words with the local vocabulary dataset.
+- If the word exists, open Word Detail using real dataset data.
+- If the word does not exist, show a fallback Word Detail screen with:
+  - word
+  - "아직 단어장에 없는 단어입니다"
+  - option to save as custom word
+
+3. Word Detail connection
+- Word Detail must display:
+  - word
+  - pronunciation
+  - Korean meaning
+  - example sentence
+  - Korean translation
+  - phrase or idiom
+  - memory tip
+  - difficulty level
+  - grade
+  - unit
+  - related words
+  - pronunciation button using expo-speech
+
+4. Memorization connection
+- When user taps "암기 시작", pass the selected word data into Memorization screen.
+- Flashcard must use the selected word, not dummy data.
+
+5. Review connection
+- Easy / Hard / Forgot buttons must update spaced repetition schedule.
+- Review screen must show the selected word in the review queue.
+- Keep 1, 3, 7, 14, 30 day review intervals.
+
+6. Search connection
+- Search must use the same vocabulary dataset.
+- Search by English word and Korean meaning.
+
+7. Study connection
+- Study screen must use the same vocabulary dataset.
+- Structure:
+  Elementary → Grade → Unit → Word
+  Middle → Grade → Unit → Word
+  High → Grade → Unit → Word
+
+8. Add internal validation
+Create a simple developer-only debug checklist screen or console report that checks:
+- Total vocabulary count
+- Elementary word count
+- Middle word count
+- High word count
+- Camera demo words matched count
+- Word Detail receives selected word correctly
+- Memorization receives selected word correctly
+- Review schedule saves correctly
+
+9. Do not change the current design significantly.
+10. Keep Korean UI.
+11. Keep AsyncStorage fallback.
+12. Add comments where important.
+
+After finishing, provide a summary:
+- Files changed
+- New functions added
+- How to test the flow
+- Any remaining known issues

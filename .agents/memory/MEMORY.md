@@ -1,0 +1,3 @@
+- [Camera demo OCR flow](camera-ocr-flow.md) — DEMO_RESULTS uses real new IDs (e25,m08,h01,m03,h03,h09,m04,m01) + 4 intentional unknowns (empty id); key=id or "unknown:word".
+- [Word detail fallback](word-detail-fallback.md) — word-detail.tsx accepts `word` param as fallback for unmatched camera words; shows UnknownWordScreen with TTS + custom save stub.
+- [Vocab dataset IDs](vocab-ids.md) — e01–e100 elementary, m01–m100 middle, h01–h100 high; all zero-padded; 4 units/grade; mockData exports getVocabStats() for debug screen.

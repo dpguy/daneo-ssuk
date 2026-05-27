@@ -65,6 +65,35 @@ export const getRelatedWords = (word: Word) =>
 export const getLevelLabel = (level: "elementary" | "middle" | "high") =>
   level === "elementary" ? "초등" : level === "middle" ? "중등" : "고등";
 
+// ── Vocabulary validation stats (used by debug screen) ────────────────────────
+export const getVocabStats = () => {
+  const elementary = MOCK_WORDS.filter((w) => w.level === "elementary");
+  const middle = MOCK_WORDS.filter((w) => w.level === "middle");
+  const high = MOCK_WORDS.filter((w) => w.level === "high");
+
+  // Camera demo words (8 known, 4 unknown)
+  const DEMO_IDS = ["e25", "m08", "h01", "m03", "h03", "h09", "m04", "m01"];
+  const demoMatched = DEMO_IDS.filter((id) => MOCK_WORDS.some((w) => w.id === id)).length;
+  const demoTotal = 12; // 8 in dataset + 4 unknown
+
+  // Words per level/grade/unit validation
+  const unitCounts: Record<string, number> = {};
+  MOCK_WORDS.forEach((w) => {
+    const key = `${w.level}-g${w.grade}-u${w.unit}`;
+    unitCounts[key] = (unitCounts[key] ?? 0) + 1;
+  });
+
+  return {
+    total: MOCK_WORDS.length,
+    elementaryCount: elementary.length,
+    middleCount: middle.length,
+    highCount: high.length,
+    demoMatched,
+    demoTotal,
+    unitCounts,
+  };
+};
+
 export const formatNextReview = (isoDate: string): string => {
   const next = new Date(isoDate);
   const now = new Date();

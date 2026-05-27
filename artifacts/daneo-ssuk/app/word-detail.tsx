@@ -1,9 +1,11 @@
 // WordDetailScreen — full word info with difficulty, pronunciation, related words
+// Handles both words found in the dataset (by id) and unmatched words from camera scan
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import {
+  Alert,
   Platform,
   ScrollView,
   StyleSheet,
@@ -23,13 +25,14 @@ import {
 } from "@/constants/mockData";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { useSpeech } from "@/hooks/useSpeech";
+import { SpeechSpeed, useSpeech } from "@/hooks/useSpeech";
 
 export default function WordDetailScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // `word` param is passed for unmatched camera words that aren't in the dataset
+  const { id, word: wordParam } = useLocalSearchParams<{ id: string; word?: string }>();
   const { isWordSaved, saveWord, unsaveWord, addReview } = useApp();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
@@ -43,11 +46,22 @@ export default function WordDetailScreen() {
     return () => { stop(); };
   }, [stop]);
 
+  // ── Fallback screen for words not in the dataset ─────────────────────────────
   if (!word) {
+    const unknownWord = wordParam || id || "알 수 없음";
     return (
-      <View style={[styles.screen, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.foreground, padding: 20 }}>단어를 찾을 수 없습니다.</Text>
-      </View>
+      <UnknownWordScreen
+        word={unknownWord}
+        colors={colors}
+        topPad={topPad}
+        onBack={() => router.back()}
+        isSpeaking={isSpeaking}
+        speechError={speechError}
+        speed={speed}
+        onToggle={() => toggle(unknownWord)}
+        onSpeedChange={setSpeed}
+        onReplay={replay}
+      />
     );
   }
 
@@ -70,6 +84,7 @@ export default function WordDetailScreen() {
   };
 
   const handleStartMemorize = async () => {
+    // Ensure word is in the review queue before navigating to memorization
     await addReview(word.id);
     router.push({ pathname: "/memorization", params: { id: word.id } });
   };
@@ -267,6 +282,147 @@ export default function WordDetailScreen() {
   );
 }
 
+// ── Fallback screen for unmatched words ──────────────────────────────────────
+function UnknownWordScreen({
+  word,
+  colors,
+  topPad,
+  onBack,
+  isSpeaking,
+  speechError,
+  speed,
+  onToggle,
+  onSpeedChange,
+  onReplay,
+}: {
+  word: string;
+  colors: ReturnType<typeof useColors>;
+  topPad: number;
+  onBack: () => void;
+  isSpeaking: boolean;
+  speechError: boolean;
+  speed: SpeechSpeed;
+  onToggle: () => void;
+  onSpeedChange: (s: SpeechSpeed) => void;
+  onReplay: () => void;
+}) {
+  const handleSaveCustom = () => {
+    Alert.alert(
+      "커스텀 단어 저장",
+      `"${word}"를 나만의 단어장에 추가하시겠어요?\n\n(향후 업데이트에서 뜻과 예문을 직접 입력할 수 있습니다)`,
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "추가",
+          onPress: () =>
+            Alert.alert("준비 중", "커스텀 단어 저장 기능은 곧 지원됩니다!"),
+        },
+      ]
+    );
+  };
+
+  return (
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: topPad + 8, borderBottomColor: colors.border }]}>
+        <TouchableOpacity onPress={onBack} hitSlop={12}>
+          <Ionicons name="arrow-back" size={24} color={colors.foreground} />
+        </TouchableOpacity>
+        <View
+          style={[
+            styles.diffBadge,
+            { backgroundColor: colors.mutedForeground + "18", borderColor: colors.mutedForeground + "44" },
+          ]}
+        >
+          <View style={[styles.diffDot, { backgroundColor: colors.mutedForeground }]} />
+          <Text style={[styles.diffText, { color: colors.mutedForeground }]}>미등록 단어</Text>
+        </View>
+        <View style={{ width: 24 }} />
+      </View>
+
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: 120 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Word hero */}
+        <View style={styles.hero}>
+          <Text style={[styles.mainWord, { color: colors.foreground }]}>{word}</Text>
+
+          {/* TTS still works for unmatched words */}
+          <SpeechBar
+            pronunciation=""
+            isSpeaking={isSpeaking}
+            speechError={speechError}
+            speed={speed}
+            onToggle={onToggle}
+            onSpeedChange={onSpeedChange}
+            onReplay={onReplay}
+          />
+        </View>
+
+        {/* Not in dataset notice */}
+        <View
+          style={[
+            styles.unknownCard,
+            {
+              backgroundColor: colors.secondary,
+              borderColor: colors.border,
+              borderRadius: colors.radius,
+            },
+          ]}
+        >
+          <Ionicons name="help-circle-outline" size={40} color={colors.mutedForeground} />
+          <Text style={[styles.unknownTitle, { color: colors.foreground }]}>
+            아직 단어장에 없는 단어입니다
+          </Text>
+          <Text style={[styles.unknownSub, { color: colors.mutedForeground }]}>
+            "{word}"은 현재 단어쑥 데이터베이스에 등록되어 있지 않습니다.{"\n"}
+            커스텀 단어로 직접 추가하거나, 업데이트를 기다려주세요.
+          </Text>
+        </View>
+
+        {/* Suggestions */}
+        <View
+          style={[
+            styles.suggestionCard,
+            {
+              backgroundColor: colors.primary + "0D",
+              borderColor: colors.primary + "33",
+              borderRadius: colors.radius,
+            },
+          ]}
+        >
+          <Text style={[styles.suggestionTitle, { color: colors.foreground }]}>
+            💡 이 단어에 대해 더 알아보려면
+          </Text>
+          <Text style={[styles.suggestionText, { color: colors.mutedForeground }]}>
+            • 발음 버튼을 눌러 원어민 발음을 들어보세요{"\n"}
+            • 영어 사전 앱에서 뜻을 찾아보세요{"\n"}
+            • 커스텀 단어로 추가해 직접 관리하세요
+          </Text>
+        </View>
+      </ScrollView>
+
+      {/* Bottom action */}
+      <View
+        style={[
+          styles.bottomBar,
+          {
+            backgroundColor: colors.background,
+            borderTopColor: colors.border,
+            paddingBottom: Platform.OS === "web" ? 34 : 12,
+          },
+        ]}
+      >
+        <PrimaryButton
+          title="커스텀 단어로 저장하기"
+          onPress={handleSaveCustom}
+        />
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: {
@@ -342,4 +498,25 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   spellingBtnText: { fontSize: 14, fontFamily: "NotoSansKR_600SemiBold" },
+  // Unknown word styles
+  unknownCard: {
+    borderWidth: 1,
+    padding: 24,
+    alignItems: "center",
+    gap: 12,
+  },
+  unknownTitle: { fontSize: 17, fontFamily: "NotoSansKR_700Bold", textAlign: "center" },
+  unknownSub: {
+    fontSize: 14,
+    fontFamily: "NotoSansKR_400Regular",
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  suggestionCard: {
+    borderWidth: 1,
+    padding: 16,
+    gap: 10,
+  },
+  suggestionTitle: { fontSize: 15, fontFamily: "NotoSansKR_600SemiBold" },
+  suggestionText: { fontSize: 13, fontFamily: "NotoSansKR_400Regular", lineHeight: 22 },
 });

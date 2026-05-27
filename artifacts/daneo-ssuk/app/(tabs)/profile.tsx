@@ -16,6 +16,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useRouter } from "expo-router";
+
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -222,6 +224,7 @@ function LoginNudgeBanner({ onLogin, onSignup }: { onLogin: () => void; onSignup
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { totalLearned, streak, savedWords, reviews, isLoggedIn, userEmail, displayName, signOut } = useApp();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
@@ -356,6 +359,21 @@ export default function ProfileScreen() {
             <AchievementBadge key={a.id} a={a} />
           ))}
         </View>
+
+        {/* ── Developer debug (validator) ───────────────────────── */}
+        <TouchableOpacity
+          onPress={() => router.push("/debug" as any)}
+          style={[
+            styles.debugBtn,
+            { backgroundColor: colors.secondary, borderColor: colors.border, borderRadius: colors.radius },
+          ]}
+        >
+          <Ionicons name="bug-outline" size={16} color={colors.mutedForeground} />
+          <Text style={[styles.debugBtnText, { color: colors.mutedForeground }]}>
+            개발자 검증 체크리스트
+          </Text>
+          <Ionicons name="chevron-forward" size={14} color={colors.mutedForeground} />
+        </TouchableOpacity>
       </ScrollView>
 
       {/* ── Auth Modal ────────────────────────────────────────────── */}
@@ -423,6 +441,17 @@ const styles = StyleSheet.create({
 
   // achievements
   badgesGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  // debug
+  debugBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    marginBottom: 8,
+  },
+  debugBtnText: { flex: 1, fontSize: 13, fontFamily: "NotoSansKR_500Medium" },
   badge: { width: "47%", borderWidth: 1, padding: 16, alignItems: "center", gap: 6 },
   badgeTitle: { fontSize: 13, fontFamily: "NotoSansKR_600SemiBold", textAlign: "center" },
   badgeDesc: { fontSize: 11, fontFamily: "NotoSansKR_400Regular", textAlign: "center" },

@@ -1,4 +1,4 @@
-// CameraScreen — Production-ready OCR result UX (demo data)
+// CameraScreen — Demo OCR flow connected to real vocabulary dataset
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -15,29 +15,31 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { MOCK_WORDS } from "@/constants/mockData";
+import { getLevelLabel, MOCK_WORDS } from "@/constants/mockData";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
-// ── Demo OCR result data ───────────────────────────────────────────────────────
-const DEMO_RESULTS = [
-  { id: "e3",  word: "friend",       confidence: 98 },
-  { id: "m3",  word: "remember",     confidence: 97 },
-  { id: "m1",  word: "important",    confidence: 95 },
-  { id: "e6",  word: "curious",      confidence: 94 },
-  { id: "h1",  word: "analyze",      confidence: 91 },
-  { id: "h3",  word: "concept",      confidence: 90 },
-  { id: "e7",  word: "friendship",   confidence: 88 },
-  { id: "h5",  word: "significant",  confidence: 85 },
-  { id: "m10", word: "goal",         confidence: 83 },
-  { id: "m8",  word: "courage",      confidence: 79 },
-  { id: "e8",  word: "environment",  confidence: 76 },
-  { id: "h6",  word: "perseverance", confidence: 72 },
+// ── Demo OCR result data ────────────────────────────────────────────────────
+// Mix of words that exist in the local vocabulary database and words that don't.
+// Empty id = word not found in the database (shows fallback in Word Detail).
+const DEMO_RESULTS: { id: string; word: string; confidence: number }[] = [
+  { id: "e25", word: "friend",       confidence: 98 }, // 초등 - in dataset
+  { id: "m08", word: "curious",      confidence: 97 }, // 중등 - in dataset
+  { id: "h01", word: "achieve",      confidence: 95 }, // 고등 - in dataset
+  { id: "m03", word: "brave",        confidence: 94 }, // 중등 - in dataset
+  { id: "h03", word: "analyze",      confidence: 91 }, // 고등 - in dataset
+  { id: "h09", word: "equality",     confidence: 90 }, // 고등 - in dataset
+  { id: "m04", word: "creative",     confidence: 88 }, // 중등 - in dataset
+  { id: "m01", word: "kind",         confidence: 85 }, // 중등 - in dataset
+  { id: "",    word: "important",    confidence: 83 }, // 미등록 - not in dataset
+  { id: "",    word: "friendship",   confidence: 79 }, // 미등록 - not in dataset
+  { id: "",    word: "significant",  confidence: 76 }, // 미등록 - not in dataset
+  { id: "",    word: "perseverance", confidence: 72 }, // 미등록 - not in dataset
 ];
 
 type Stage = "idle" | "scanning" | "results" | "saved";
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 function confidenceColor(c: number): string {
   if (c >= 90) return "#4CAF50";
   if (c >= 75) return "#FF9800";
@@ -50,7 +52,7 @@ function confidenceLabel(c: number): string {
   return "낮음";
 }
 
-// ── ScanLine animation ─────────────────────────────────────────────────────────
+// ── ScanLine animation ────────────────────────────────────────────────────────
 function ScanLineAnim({ color }: { color: string }) {
   const anim = useRef(new Animated.Value(0)).current;
   React.useEffect(() => {
@@ -83,9 +85,22 @@ function WordChip({
   colors: ReturnType<typeof useColors>;
   alreadySaved: boolean;
 }) {
-  const word = MOCK_WORDS.find((w) => w.id === item.id);
+  // Look up word from local vocabulary dataset
+  const vocabWord = item.id ? MOCK_WORDS.find((w) => w.id === item.id) : null;
+  const inDataset = !!vocabWord;
   const conf = item.confidence;
   const cColor = confidenceColor(conf);
+
+  // Level badge color
+  const levelColor = vocabWord
+    ? vocabWord.level === "elementary"
+      ? colors.primary
+      : vocabWord.level === "middle"
+      ? colors.info
+      : colors.hard
+    : colors.mutedForeground;
+
+  const levelLabel = vocabWord ? getLevelLabel(vocabWord.level) : "미등록";
 
   return (
     <TouchableOpacity
@@ -121,22 +136,42 @@ function WordChip({
           <Text style={[styles.chipWord, { color: colors.foreground }]}>
             {item.word}
           </Text>
-          {word && (
+
+          {/* Level badge — 초등/중등/고등 or 미등록 */}
+          <View style={[styles.levelBadge, { backgroundColor: levelColor + "22" }]}>
+            <Text style={[styles.levelBadgeText, { color: levelColor }]}>
+              {levelLabel}
+            </Text>
+          </View>
+
+          {/* Pronunciation (only if word exists in dataset) */}
+          {vocabWord && (
             <Text style={[styles.chipPron, { color: colors.mutedForeground }]}>
-              {word.pronunciation}
+              {vocabWord.pronunciation}
             </Text>
           )}
+
           {alreadySaved && (
             <View style={[styles.savedBadge, { backgroundColor: colors.primary + "22" }]}>
               <Text style={[styles.savedBadgeText, { color: colors.primary }]}>저장됨</Text>
             </View>
           )}
         </View>
-        {word && (
+
+        {/* Korean meaning (only if in dataset) */}
+        {vocabWord && (
           <Text style={[styles.chipMeaning, { color: colors.mutedForeground }]}>
-            {word.meaning}
+            {vocabWord.meaning}
           </Text>
         )}
+
+        {/* Not in dataset notice */}
+        {!inDataset && (
+          <Text style={[styles.chipMeaning, { color: colors.mutedForeground }]}>
+            아직 단어장에 없는 단어입니다
+          </Text>
+        )}
+
         {/* Confidence bar */}
         <View style={styles.confRow}>
           <View style={[styles.confBarBg, { backgroundColor: colors.border }]}>
@@ -163,9 +198,13 @@ export default function CameraScreen() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [savedCount, setSavedCount] = useState(0);
 
-  const allIds = DEMO_RESULTS.map((d) => d.id);
-  const allSelected = selected.size === allIds.length;
-  const newCount = DEMO_RESULTS.filter((d) => !isWordSaved(d.id)).length;
+  // Use word text as key for unknown words (id is empty)
+  const getKey = (item: (typeof DEMO_RESULTS)[0]) => item.id || `unknown:${item.word}`;
+
+  const allKeys = DEMO_RESULTS.map(getKey);
+  const allSelected = selected.size === allKeys.length;
+  // Count words NOT yet saved (only those in dataset)
+  const newCount = DEMO_RESULTS.filter((d) => d.id && !isWordSaved(d.id)).length;
 
   // ── Actions ────────────────────────────────────────────────────────
   const runDemoScan = () => {
@@ -174,35 +213,44 @@ export default function CameraScreen() {
     setSelected(new Set());
     setTimeout(() => {
       setStage("results");
-      // Pre-select high-confidence unknowns
+      // Pre-select high-confidence words that exist in dataset and aren't already saved
       const autoSelect = new Set(
-        DEMO_RESULTS.filter((d) => d.confidence >= 80 && !isWordSaved(d.id)).map((d) => d.id)
+        DEMO_RESULTS
+          .filter((d) => d.confidence >= 80 && d.id && !isWordSaved(d.id))
+          .map(getKey)
       );
       setSelected(autoSelect);
     }, 1800);
   };
 
-  const toggleWord = useCallback((id: string) => {
+  const toggleWord = useCallback((key: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }, []);
 
   const toggleAll = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelected(allSelected ? new Set() : new Set(allIds));
+    setSelected(allSelected ? new Set() : new Set(allKeys));
   };
 
   const handleSave = async () => {
     if (selected.size === 0) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const ids = Array.from(selected);
-    await Promise.all(ids.flatMap((id) => [saveWord(id), addReview(id)]));
-    setSavedCount(ids.length);
+
+    // Only save words that exist in the local vocabulary dataset
+    const knownItems = DEMO_RESULTS.filter(
+      (d) => d.id && selected.has(getKey(d))
+    );
+    await Promise.all(
+      knownItems.flatMap((item) => [saveWord(item.id), addReview(item.id)])
+    );
+
+    setSavedCount(knownItems.length);
     setStage("saved");
   };
 
@@ -212,9 +260,19 @@ export default function CameraScreen() {
     setSavedCount(0);
   };
 
+  // Navigate to word detail — known words by id, unknown words by word text
+  const navigateToWordDetail = (item: (typeof DEMO_RESULTS)[0]) => {
+    if (item.id) {
+      router.push({ pathname: "/word-detail", params: { id: item.id } });
+    } else {
+      router.push({ pathname: "/word-detail", params: { id: "", word: item.word } });
+    }
+  };
+
   const handleStudyFirst = () => {
-    const firstId = Array.from(selected)[0] ?? DEMO_RESULTS[0].id;
-    router.push({ pathname: "/word-detail", params: { id: firstId } });
+    // Find first selected item
+    const firstItem = DEMO_RESULTS.find((d) => selected.has(getKey(d))) ?? DEMO_RESULTS[0];
+    navigateToWordDetail(firstItem);
   };
 
   // ── Render ─────────────────────────────────────────────────────────
@@ -244,7 +302,7 @@ export default function CameraScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: 32 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── IDLE ────────────────────────────────────────────────── */}
+        {/* ── IDLE ─────────────────────────────────────────────────── */}
         {stage === "idle" && (
           <>
             <View
@@ -299,7 +357,7 @@ export default function CameraScreen() {
           </>
         )}
 
-        {/* ── SCANNING ────────────────────────────────────────────── */}
+        {/* ── SCANNING ─────────────────────────────────────────────── */}
         {stage === "scanning" && (
           <View
             style={[
@@ -313,22 +371,17 @@ export default function CameraScreen() {
               },
             ]}
           >
-            {/* Mock textbook page */}
             <MockPagePreview colors={colors} />
-            {/* Scan line */}
             <ScanLineAnim color={colors.primary} />
-            {/* Overlay */}
             <View style={styles.scanOverlay}>
-              <View
-                style={[styles.scanBadge, { backgroundColor: colors.primary }]}
-              >
+              <View style={[styles.scanBadge, { backgroundColor: colors.primary }]}>
                 <Text style={styles.scanBadgeText}>분석 중...</Text>
               </View>
             </View>
           </View>
         )}
 
-        {/* ── RESULTS ─────────────────────────────────────────────── */}
+        {/* ── RESULTS ──────────────────────────────────────────────── */}
         {stage === "results" && (
           <>
             {/* Photo preview */}
@@ -402,16 +455,19 @@ export default function CameraScreen() {
 
             {/* Chips */}
             <View style={styles.chipList}>
-              {DEMO_RESULTS.map((item) => (
-                <WordChip
-                  key={item.id}
-                  item={item}
-                  selected={selected.has(item.id)}
-                  onToggle={() => toggleWord(item.id)}
-                  colors={colors}
-                  alreadySaved={isWordSaved(item.id)}
-                />
-              ))}
+              {DEMO_RESULTS.map((item) => {
+                const key = getKey(item);
+                return (
+                  <WordChip
+                    key={key}
+                    item={item}
+                    selected={selected.has(key)}
+                    onToggle={() => toggleWord(key)}
+                    colors={colors}
+                    alreadySaved={item.id ? isWordSaved(item.id) : false}
+                  />
+                );
+              })}
             </View>
 
             {/* Action buttons */}
@@ -438,7 +494,7 @@ export default function CameraScreen() {
           </>
         )}
 
-        {/* ── SAVED ───────────────────────────────────────────────── */}
+        {/* ── SAVED ────────────────────────────────────────────────── */}
         {stage === "saved" && (
           <>
             {/* Success card */}
@@ -462,24 +518,23 @@ export default function CameraScreen() {
                 {savedCount}개 단어가 내 단어장과 암기 큐에 추가되었습니다.
               </Text>
 
-              {/* Summary rows */}
               <View style={[styles.summaryBox, { borderTopColor: colors.border }]}>
                 <SummaryRow icon="bookmark-outline" text={`내 단어장  +${savedCount}개`} colors={colors} />
                 <SummaryRow icon="layers-outline" text={`암기 큐  +${savedCount}개`} colors={colors} />
               </View>
             </View>
 
-            {/* Saved word chips preview */}
+            {/* Saved word chips preview — tappable to view Word Detail */}
             <View style={styles.savedChipsWrap}>
-              {Array.from(selected)
+              {DEMO_RESULTS
+                .filter((d) => selected.has(getKey(d)))
                 .slice(0, 6)
-                .map((id) => {
-                  const w = MOCK_WORDS.find((x) => x.id === id);
-                  if (!w) return null;
+                .map((item) => {
+                  const vocabWord = item.id ? MOCK_WORDS.find((x) => x.id === item.id) : null;
                   return (
                     <TouchableOpacity
-                      key={id}
-                      onPress={() => router.push({ pathname: "/word-detail", params: { id } })}
+                      key={getKey(item)}
+                      onPress={() => navigateToWordDetail(item)}
                       style={[
                         styles.savedChip,
                         {
@@ -490,10 +545,10 @@ export default function CameraScreen() {
                       ]}
                     >
                       <Text style={[styles.savedChipWord, { color: colors.foreground }]}>
-                        {w.word}
+                        {item.word}
                       </Text>
                       <Text style={[styles.savedChipMeaning, { color: colors.mutedForeground }]}>
-                        {w.meaning}
+                        {vocabWord ? vocabWord.meaning : "미등록"}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -533,16 +588,16 @@ export default function CameraScreen() {
   );
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// ── Sub-components ──────────────────────────────────────────────────────────────
 
 function MockPagePreview({ colors }: { colors: ReturnType<typeof useColors> }) {
   const lines = [
     ["Chapter 3", "Vocabulary"],
-    ["friend", "important", "analyze"],
-    ["remember", "challenge", "curious"],
-    ["perseverance", "environment"],
-    ["significant", "concept", "goal"],
-    ["courage", "remember"],
+    ["friend", "achieve", "analyze"],
+    ["curious", "brave", "equality"],
+    ["creative", "kind"],
+    ["important", "significant"],
+    ["friendship", "perseverance"],
   ];
   return (
     <View style={[styles.mockPage, { backgroundColor: "#fffef6" }]}>
@@ -610,7 +665,7 @@ function SummaryRow({
   return (
     <View style={styles.summaryRow}>
       <Ionicons name={icon as any} size={16} color={colors.primary} />
-      <Text style={[styles.summaryRowText, { color: colors.foreground }]}>{text}</Text>
+      <Text style={[styles.summaryText, { color: colors.foreground }]}>{text}</Text>
     </View>
   );
 }
@@ -620,25 +675,18 @@ function NoticeBox({ colors }: { colors: ReturnType<typeof useColors> }) {
     <View
       style={[
         styles.noticeBox,
-        {
-          backgroundColor: colors.accent + "18",
-          borderColor: colors.accent + "44",
-          borderRadius: colors.radius,
-        },
+        { backgroundColor: colors.secondary, borderRadius: colors.radius, borderColor: colors.border },
       ]}
     >
-      <Ionicons name="information-circle" size={16} color={colors.accent} />
-      <Text style={[styles.noticeText, { color: colors.foreground }]}>
-        실제 OCR은 다음 버전에서 연결됩니다. 현재는 데모 단어를 표시합니다.
+      <Ionicons name="information-circle-outline" size={16} color={colors.mutedForeground} />
+      <Text style={[styles.noticeText, { color: colors.mutedForeground }]}>
+        실제 OCR 연동 전 데모 모드입니다. 8개 단어는 단어장에 등록되어 있으며, 4개는 미등록 단어 예시입니다.
       </Text>
     </View>
   );
 }
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
-const C = 20;
-const T = 3;
-
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: {
@@ -650,128 +698,81 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   headerTitle: { fontSize: 17, fontFamily: "NotoSansKR_600SemiBold" },
-  headerAction: { fontSize: 15, fontFamily: "NotoSansKR_500Medium" },
-  content: { padding: 16, gap: 14 },
-
-  // viewfinder
-  viewfinder: { width: "100%", minHeight: 260, borderWidth: 1 },
-  viewfinderScanning: { minHeight: 280 },
-  vcenter: {
-    flex: 1,
-    minHeight: 260,
-    alignItems: "center",
+  headerAction: { fontSize: 15, fontFamily: "NotoSansKR_600SemiBold" },
+  content: { padding: 20, gap: 16 },
+  viewfinder: {
+    height: 280,
+    borderWidth: 1.5,
     justifyContent: "center",
-    gap: 12,
-    padding: 28,
-  },
-  vTitle: { fontSize: 15, fontFamily: "NotoSansKR_500Medium", textAlign: "center" },
-  vSub: { fontSize: 13, fontFamily: "NotoSansKR_400Regular", textAlign: "center" },
-  corner: { position: "absolute", width: C, height: C, borderWidth: T },
-  tl: { top: 14, left: 14, borderBottomWidth: 0, borderRightWidth: 0, borderTopLeftRadius: 4 },
-  tr: { top: 14, right: 14, borderBottomWidth: 0, borderLeftWidth: 0, borderTopRightRadius: 4 },
-  bl: { bottom: 14, left: 14, borderTopWidth: 0, borderRightWidth: 0, borderBottomLeftRadius: 4 },
-  br: { bottom: 14, right: 14, borderTopWidth: 0, borderLeftWidth: 0, borderBottomRightRadius: 4 },
-
-  // scan animation
-  scanLine: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: 2,
-    opacity: 0.7,
-  },
-  scanOverlay: {
-    position: "absolute",
-    bottom: 12,
-    left: 0,
-    right: 0,
     alignItems: "center",
   },
+  viewfinderScanning: { height: 280 },
+  vcenter: { alignItems: "center", gap: 10, padding: 20 },
+  vTitle: { fontSize: 15, fontFamily: "NotoSansKR_600SemiBold", textAlign: "center" },
+  vSub: { fontSize: 12, fontFamily: "NotoSansKR_400Regular", textAlign: "center" },
+  corner: { position: "absolute", width: 20, height: 20, borderColor: "#5BC878" },
+  tl: { top: 12, left: 12, borderTopWidth: 2, borderLeftWidth: 2 },
+  tr: { top: 12, right: 12, borderTopWidth: 2, borderRightWidth: 2 },
+  bl: { bottom: 12, left: 12, borderBottomWidth: 2, borderLeftWidth: 2 },
+  br: { bottom: 12, right: 12, borderBottomWidth: 2, borderRightWidth: 2 },
+  scanLine: { position: "absolute", left: 0, right: 0, height: 2, opacity: 0.8 },
+  scanOverlay: { position: "absolute", bottom: 16, right: 16 },
   scanBadge: {
-    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 99,
+    gap: 6,
   },
-  scanBadgeText: {
-    color: "#fff",
-    fontSize: 13,
-    fontFamily: "NotoSansKR_600SemiBold",
-  },
-
-  // mock page
-  mockPage: {
-    flex: 1,
-    padding: 14,
-    gap: 8,
-    minHeight: 260,
-    justifyContent: "center",
-  },
-  mockLine: { flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "center" },
-  mockWord: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  mockWordText: { fontSize: 13 },
-
-  // photo preview
-  photoPreview: {
-    width: "100%",
-    minHeight: 200,
-    borderWidth: 2,
-  },
-  photoOverlay: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-  },
+  scanBadgeText: { color: "#fff", fontSize: 12, fontFamily: "NotoSansKR_600SemiBold" },
+  tipsCard: { borderWidth: 1, padding: 16, gap: 10 },
+  tipRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  tipText: { fontSize: 13, fontFamily: "NotoSansKR_400Regular" },
+  btnGroup: { gap: 10 },
+  photoPreview: { height: 180, borderWidth: 1.5 },
+  photoOverlay: { position: "absolute", bottom: 12, left: 12 },
   detectedBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 20,
+    borderRadius: 99,
   },
-  detectedBadgeText: {
-    color: "#fff",
-    fontSize: 12,
-    fontFamily: "NotoSansKR_600SemiBold",
-  },
-
-  // stats
+  detectedBadgeText: { color: "#fff", fontSize: 12, fontFamily: "NotoSansKR_600SemiBold" },
   statsRow: {
     flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     padding: 14,
-    alignItems: "center",
   },
+  statDivider: { width: 1, height: 32, marginHorizontal: 4 },
   statItem: { flex: 1, alignItems: "center", gap: 2 },
   statValue: { fontSize: 18, fontFamily: "NotoSansKR_700Bold" },
   statLabel: { fontSize: 11, fontFamily: "NotoSansKR_400Regular" },
-  statDivider: { width: 1, height: 32 },
-
-  // chip list
   chipListHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
   },
-  chipListTitle: { fontSize: 15, fontFamily: "NotoSansKR_600SemiBold" },
+  chipListTitle: { fontSize: 16, fontFamily: "NotoSansKR_700Bold" },
   toggleAllBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
+    borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderWidth: 1,
   },
-  toggleAllText: { fontSize: 13, fontFamily: "NotoSansKR_500Medium" },
-  chipList: { gap: 8 },
-
-  // chip
+  toggleAllText: { fontSize: 12, fontFamily: "NotoSansKR_500Medium" },
+  chipList: { gap: 10 },
   chip: {
     flexDirection: "row",
     alignItems: "flex-start",
-    borderWidth: 1.5,
-    padding: 12,
     gap: 10,
+    borderWidth: 1,
+    padding: 12,
   },
   checkbox: {
     width: 22,
@@ -784,78 +785,60 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   chipBody: { flex: 1, gap: 4 },
-  chipTop: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
-  chipWord: { fontSize: 16, fontFamily: "NotoSansKR_700Bold" },
+  chipTop: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 },
+  chipWord: { fontSize: 15, fontFamily: "NotoSansKR_700Bold" },
+  levelBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 99 },
+  levelBadgeText: { fontSize: 10, fontFamily: "NotoSansKR_700Bold" },
   chipPron: { fontSize: 12, fontFamily: "NotoSansKR_400Regular" },
-  savedBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  savedBadgeText: { fontSize: 11, fontFamily: "NotoSansKR_500Medium" },
+  savedBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 99 },
+  savedBadgeText: { fontSize: 10, fontFamily: "NotoSansKR_600SemiBold" },
   chipMeaning: { fontSize: 13, fontFamily: "NotoSansKR_400Regular" },
   confRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 },
   confBarBg: { flex: 1, height: 4, borderRadius: 2, overflow: "hidden" },
   confBarFill: { height: 4, borderRadius: 2 },
-  confLabel: { fontSize: 11, fontFamily: "NotoSansKR_500Medium", minWidth: 60, textAlign: "right" },
-
-  // success
-  successCard: {
-    borderWidth: 1,
-    padding: 24,
-    alignItems: "center",
-    gap: 8,
-  },
+  confLabel: { fontSize: 11, fontFamily: "NotoSansKR_500Medium", minWidth: 60 },
+  successCard: { borderWidth: 1, padding: 24, alignItems: "center", gap: 10 },
   successIcon: {
     width: 56,
     height: 56,
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
   },
-  successTitle: { fontSize: 20, fontFamily: "NotoSansKR_700Bold" },
-  successSub: {
-    fontSize: 14,
-    fontFamily: "NotoSansKR_400Regular",
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  summaryBox: {
-    width: "100%",
-    borderTopWidth: 1,
-    marginTop: 8,
-    paddingTop: 14,
-    gap: 10,
-  },
-  summaryRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  summaryRowText: { fontSize: 14, fontFamily: "NotoSansKR_500Medium" },
-
-  // saved chips preview
-  savedChipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  successTitle: { fontSize: 22, fontFamily: "NotoSansKR_700Bold" },
+  successSub: { fontSize: 14, fontFamily: "NotoSansKR_400Regular", textAlign: "center" },
+  summaryBox: { width: "100%", borderTopWidth: 1, paddingTop: 12, gap: 8, marginTop: 4 },
+  summaryRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  summaryText: { fontSize: 14, fontFamily: "NotoSansKR_500Medium" },
+  savedChipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   savedChip: {
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 8,
     gap: 2,
-    alignItems: "center",
+    minWidth: "44%",
+    flex: 1,
   },
-  savedChipMore: { justifyContent: "center" },
+  savedChipMore: { justifyContent: "center", alignItems: "center" },
   savedChipWord: { fontSize: 14, fontFamily: "NotoSansKR_600SemiBold" },
   savedChipMeaning: { fontSize: 11, fontFamily: "NotoSansKR_400Regular" },
-
-  // misc
-  tipsCard: { borderWidth: 1, padding: 16, gap: 10 },
-  tipRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  tipText: { fontSize: 13, fontFamily: "NotoSansKR_400Regular" },
-  btnGroup: { gap: 10 },
+  mockPage: {
+    width: "100%",
+    height: "100%",
+    padding: 16,
+    gap: 8,
+    justifyContent: "center",
+  },
+  mockLine: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  mockWord: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
+  mockWordText: { fontSize: 12 },
   noticeBox: {
     flexDirection: "row",
-    gap: 8,
-    padding: 12,
-    borderWidth: 1,
     alignItems: "flex-start",
+    gap: 8,
+    borderWidth: 1,
+    padding: 12,
   },
-  noticeText: {
-    flex: 1,
-    fontSize: 12,
-    fontFamily: "NotoSansKR_400Regular",
-    lineHeight: 18,
-  },
+  noticeText: { flex: 1, fontSize: 12, fontFamily: "NotoSansKR_400Regular", lineHeight: 18 },
+  mockPageText: { fontSize: 11, fontFamily: "NotoSansKR_400Regular" },
 });
