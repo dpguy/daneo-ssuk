@@ -1,4 +1,4 @@
-import type { Word } from "../mockData";
+import type { Word } from "../wordTypes";
 
 // ── 중학교 어휘 (m1–m500) ──────────────────────────────────────────────────────
 // Grade 1: m1–m170   Grade 2: m171–m335   Grade 3: m336–m500
@@ -379,4 +379,4 @@ export const MIDDLE_WORDS: Word[] = [
   { id:"m331", word:"narrative",    pronunciation:"/ˈnærətɪv/",      meaning:"서사/이야기", example:"Write a narrative.",         exampleKorean:"서사를 써요.",                 idiom:"narrative arc",        idiomMeaning:"이야기의 호",      memoryTip:"내러티브~ 내러티브=이야기를 전하는 방식!", difficulty:"medium", level:"middle", grade:3, unit:3 },
   { id:"m332", word:"protagonist",  pronunciation:"/proʊˈtæɡənɪst/", meaning:"주인공",   example:"The protagonist is brave.",   exampleKorean:"주인공이 용감해요.",            idiom:"tragic protagonist",   idiomMeaning:"비극적 주인공",    memoryTip:"프로태거니스트~ 프로(앞)+태거니스트=앞서는 사람=주인공!", difficulty:"medium", level:"middle", grade:3, unit:3 },
   { id:"m333", word:"antagonist",   pronunciation:"/ænˈtæɡənɪst/",  meaning:"악당",     example:"The antagonist is evil.",     exampleKorean:"악당은 나빠요.",                idiom:"classic antagonist",   idiomMeaning:"전형적인 악당",    memoryTip:"안태거니스트~ 안티(반대)+태거니스트=주인공과 반대=악당!", difficulty:"medium", level:"middle", grade:3, unit:3 },
-  { id:"m334", word:"climax",       pronunciation:"/ˈklaɪmæks/",    meaning:"클라이맥스", example:"The climax is exciting.",    exampleKor
+];

@@ -1,4 +1,4 @@
-import type { Word } from "../mockData";
+import type { Word } from "../wordTypes";
 
 // ── 초등학교 어휘 (e1–e300) ─────────────────────────────────────────────────────
 // Grade 3: e1–e75   Grade 4: e76–e150
@@ -92,7 +92,7 @@ export const ELEMENTARY_WORDS: Word[] = [
   { id:"e69", word:"head",  pronunciation:"/hɛd/",  meaning:"머리", example:"I have a headache.",   exampleKorean:"두통이 있어요.",    idiom:"use your head",  idiomMeaning:"생각을 써라",    memoryTip:"헤드~ 헤드폰=머리에 쓰는 것!", difficulty:"beginner", level:"elementary", grade:3, unit:8 },
   { id:"e70", word:"eye",   pronunciation:"/aɪ/",   meaning:"눈",   example:"I have brown eyes.",   exampleKorean:"저는 갈색 눈이에요.", idiom:"eye candy",     idiomMeaning:"보기 좋은 것",  memoryTip:"아이~ 아이=I=나=눈으로 봐요!", difficulty:"beginner", level:"elementary", grade:3, unit:8 },
   { id:"e71", word:"ear",   pronunciation:"/ɪr/",   meaning:"귀",   example:"Rabbits have big ears.", exampleKorean:"토끼는 귀가 커요.", idiom:"lend an ear",  idiomMeaning:"귀를 기울이다", memoryTip:"이어~ 이어폰=귀에 꽂는 것!", difficulty:"beginner", level:"elementary", grade:3, unit:8 },
-  { id:"e72", word:"nose",  pronunciation:"/noʊz/", meaning:"코",   example:"Smell with your nose.", exampleKorean:"코로 냄새를 맡아요.", idiom:"nosy",         idiomMeaning:"참견하기 좋아하는", memTypeTip:"노즈~ 코(nose)로 냄새를!", difficulty:"beginner", level:"elementary", grade:3, unit:8 },
+  { id:"e72", word:"nose",  pronunciation:"/noʊz/", meaning:"코",   example:"Smell with your nose.", exampleKorean:"코로 냄새를 맡아요.", idiom:"nosy",         idiomMeaning:"참견하기 좋아하는", memoryTip:"노즈~ 코(nose)로 냄새를!", difficulty:"beginner", level:"elementary", grade:3, unit:8 },
   { id:"e73", word:"mouth", pronunciation:"/maʊθ/", meaning:"입",   example:"Open your mouth.",     exampleKorean:"입을 벌려요.",      idiom:"mouth watering", idiomMeaning:"군침이 도는",   memoryTip:"마우스~ 마우스(mouse)=입처럼 클릭!", difficulty:"beginner", level:"elementary", grade:3, unit:8 },
   { id:"e74", word:"hand",  pronunciation:"/hænd/", meaning:"손",   example:"Wash your hands.",     exampleKorean:"손을 씻어요.",      idiom:"lend a hand",   idiomMeaning:"도와주다",      memoryTip:"핸드~ 핸드폰=손에 드는 전화!", difficulty:"beginner", level:"elementary", grade:3, unit:8 },
   { id:"e75", word:"foot",  pronunciation:"/fʊt/",  meaning:"발",   example:"My foot hurts.",       exampleKorean:"발이 아파요.",      idiom:"foot the bill",  idiomMeaning:"계산하다",      memoryTip:"풋~ 풋살=발로 차는 축구!", difficulty:"beginner", level:"elementary", grade:3, unit:8 },

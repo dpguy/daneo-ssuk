@@ -1,4 +1,4 @@
-import type { Word } from "../mockData";
+import type { Word } from "../wordTypes";
 
 // ── 중학교 어휘 추가 (m334–m500) ─────────────────────────────────────────────
 export const MIDDLE_REST_WORDS: Word[] = [

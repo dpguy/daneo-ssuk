@@ -1,4 +1,4 @@
-import type { Word } from "../mockData";
+import type { Word } from "../wordTypes";
 
 // ── 고등학교 어휘 Part 1 (h1–h350) ────────────────────────────────────────────
 // Grade 1: h1–h235   Grade 2: h236–h350
