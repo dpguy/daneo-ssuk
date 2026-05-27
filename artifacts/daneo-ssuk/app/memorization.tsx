@@ -2,7 +2,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Platform,
   StyleSheet,
@@ -16,6 +16,7 @@ import { FlashCard } from "@/components/FlashCard";
 import { MOCK_WORDS, getWordById } from "@/constants/mockData";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { useSpeech } from "@/hooks/useSpeech";
 
 type Difficulty = "easy" | "hard" | "forgot";
 
@@ -27,6 +28,8 @@ export default function MemorizationScreen() {
   const { updateReview, getTodayReviews, addReview } = useApp();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
+  const { isSpeaking, speechError, speed, setSpeed, speak, replay, stop } = useSpeech();
+
   // If mode is "review", show the full today's review queue
   const reviewQueue = mode === "review"
     ? getTodayReviews().map((r) => MOCK_WORDS.find((w) => w.id === r.wordId)).filter(Boolean)
@@ -35,14 +38,32 @@ export default function MemorizationScreen() {
   const [queueIndex, setQueueIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [done, setDone] = useState(false);
-  const [doneCount, setDoneCount] = useState(0);
+  const prevWordId = useRef<string | null>(null);
 
   const currentWord = reviewQueue
     ? reviewQueue[queueIndex]
     : getWordById(id ?? "");
 
+  // Auto-play pronunciation when word changes
+  useEffect(() => {
+    if (!currentWord) return;
+    if (prevWordId.current === currentWord.id) return;
+    prevWordId.current = currentWord.id;
+    // Small delay so the card renders before speech starts
+    const t = setTimeout(() => {
+      speak(currentWord.word);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [currentWord?.id]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { stop(); };
+  }, [stop]);
+
   const handleDifficulty = async (diff: Difficulty) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    stop();
     if (currentWord) {
       await updateReview(currentWord.id, diff);
     }
@@ -52,7 +73,6 @@ export default function MemorizationScreen() {
       if (nextIndex < reviewQueue.length) {
         setQueueIndex(nextIndex);
         setFlipped(false);
-        setDoneCount((c) => c + 1);
       } else {
         setDone(true);
       }
@@ -73,7 +93,6 @@ export default function MemorizationScreen() {
   const progress = reviewQueue ? queueIndex / total : 0;
 
   if (done) {
-    // Build ids for spelling/quiz from the words we just reviewed
     const practicedIds = reviewQueue
       ? reviewQueue.map((w) => w!.id).join(",")
       : id ?? "";
@@ -88,7 +107,6 @@ export default function MemorizationScreen() {
           {total}개 단어를 학습했습니다
         </Text>
 
-        {/* Spelling practice CTA */}
         <TouchableOpacity
           onPress={() =>
             router.push({ pathname: "/spelling", params: { ids: practicedIds } })
@@ -104,7 +122,6 @@ export default function MemorizationScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* Quiz CTA */}
         <TouchableOpacity
           onPress={() =>
             router.push({ pathname: "/quiz", params: { ids: practicedIds } })
@@ -118,10 +135,7 @@ export default function MemorizationScreen() {
           <Text style={styles.quizBtnText}>랜덤 퀴즈로 확인</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.doneBtn}
-        >
+        <TouchableOpacity onPress={() => router.back()} style={styles.doneBtn}>
           <Text style={[styles.doneBtnText, { color: colors.mutedForeground }]}>나중에</Text>
         </TouchableOpacity>
       </View>
@@ -132,7 +146,7 @@ export default function MemorizationScreen() {
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: topPad + 8, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
+        <TouchableOpacity onPress={() => { stop(); router.back(); }} hitSlop={12}>
           <Ionicons name="close" size={24} color={colors.foreground} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>
@@ -157,12 +171,23 @@ export default function MemorizationScreen() {
       </View>
 
       <View style={styles.content}>
-        {/* Flashcard */}
+        {/* Flashcard with embedded speech controls */}
         {currentWord && (
-          <FlashCard word={currentWord} onFlip={setFlipped} />
+          <FlashCard
+            word={currentWord}
+            onFlip={setFlipped}
+            speechProps={{
+              isSpeaking,
+              speechError,
+              speed,
+              onToggle: () => currentWord && (isSpeaking ? stop() : speak(currentWord.word)),
+              onSpeedChange: setSpeed,
+              onReplay: replay,
+            }}
+          />
         )}
 
-        {/* Tip */}
+        {/* Hint */}
         {!flipped && (
           <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>
             카드를 탭하면 의미가 나옵니다
@@ -260,7 +285,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: "NotoSansKR_400Regular",
   },
-  // Done screen
   doneScreen: {
     alignItems: "center",
     justifyContent: "center",

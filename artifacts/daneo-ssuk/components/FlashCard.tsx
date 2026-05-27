@@ -7,15 +7,27 @@ import {
   View,
 } from "react-native";
 
+import { SpeechBar } from "@/components/SpeechBar";
 import { Word } from "@/constants/mockData";
 import { useColors } from "@/hooks/useColors";
+import { SpeechSpeed } from "@/hooks/useSpeech";
+
+export interface FlashCardSpeechProps {
+  isSpeaking: boolean;
+  speechError: boolean;
+  speed: SpeechSpeed;
+  onToggle: () => void;
+  onSpeedChange: (s: SpeechSpeed) => void;
+  onReplay: () => void;
+}
 
 interface Props {
   word: Word;
   onFlip?: (flipped: boolean) => void;
+  speechProps?: FlashCardSpeechProps;
 }
 
-export function FlashCard({ word, onFlip }: Props) {
+export function FlashCard({ word, onFlip, speechProps }: Props) {
   const colors = useColors();
   const [flipped, setFlipped] = useState(false);
   const animValue = useRef(new Animated.Value(0)).current;
@@ -65,9 +77,27 @@ export function FlashCard({ word, onFlip }: Props) {
       >
         <Text style={[styles.hint, { color: colors.mutedForeground }]}>탭하여 뒤집기</Text>
         <Text style={[styles.frontWord, { color: colors.foreground }]}>{word.word}</Text>
-        <Text style={[styles.pronunciation, { color: colors.mutedForeground }]}>
-          {word.pronunciation}
-        </Text>
+
+        {/* Speech bar — compact mode inside card */}
+        {speechProps ? (
+          <View style={styles.speechWrapper}>
+            <SpeechBar
+              pronunciation={word.pronunciation}
+              isSpeaking={speechProps.isSpeaking}
+              speechError={speechProps.speechError}
+              speed={speechProps.speed}
+              onToggle={speechProps.onToggle}
+              onSpeedChange={speechProps.onSpeedChange}
+              onReplay={speechProps.onReplay}
+              compact
+            />
+          </View>
+        ) : (
+          <Text style={[styles.pronunciation, { color: colors.mutedForeground }]}>
+            {word.pronunciation}
+          </Text>
+        )}
+
         <View style={[styles.tapHint, { backgroundColor: colors.primary + "11" }]}>
           <Text style={[styles.tapText, { color: colors.primary }]}>의미 확인하기</Text>
         </View>
@@ -107,17 +137,17 @@ export function FlashCard({ word, onFlip }: Props) {
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    height: 380,
+    height: 400,
   },
   card: {
     position: "absolute",
     width: "100%",
     height: "100%",
     borderWidth: 1.5,
-    padding: 28,
+    padding: 24,
     justifyContent: "center",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
   back: {
     justifyContent: "flex-start",
@@ -135,6 +165,10 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
     textAlign: "center",
   },
+  speechWrapper: {
+    width: "100%",
+    marginTop: 4,
+  },
   pronunciation: {
     fontSize: 16,
     fontFamily: "NotoSansKR_400Regular",
@@ -144,7 +178,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 99,
-    marginTop: 8,
+    marginTop: 4,
   },
   tapText: {
     fontSize: 13,

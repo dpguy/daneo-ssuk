@@ -2,8 +2,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import * as Speech from "expo-speech";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect } from "react";
 import {
   Platform,
   ScrollView,
@@ -15,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { SpeechBar } from "@/components/SpeechBar";
 import { WordInfoCard } from "@/components/WordInfoCard";
 import {
   getLevelLabel,
@@ -23,6 +23,7 @@ import {
 } from "@/constants/mockData";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { useSpeech } from "@/hooks/useSpeech";
 
 export default function WordDetailScreen() {
   const colors = useColors();
@@ -32,18 +33,15 @@ export default function WordDetailScreen() {
   const { isWordSaved, saveWord, unsaveWord, addReview } = useApp();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [speechError, setSpeechError] = useState(false);
+  const { isSpeaking, speechError, speed, setSpeed, toggle, replay, stop } = useSpeech();
 
   const word = getWordById(id ?? "");
   const saved = isWordSaved(id ?? "");
 
   // Stop speech when leaving the screen
   useEffect(() => {
-    return () => {
-      Speech.stop();
-    };
-  }, []);
+    return () => { stop(); };
+  }, [stop]);
 
   if (!word) {
     return (
@@ -76,34 +74,6 @@ export default function WordDetailScreen() {
     router.push({ pathname: "/memorization", params: { id: word.id } });
   };
 
-  const handlePronunciation = useCallback(async () => {
-    if (!word) return;
-    setSpeechError(false);
-
-    // If already speaking, stop it
-    if (isSpeaking) {
-      await Speech.stop();
-      setIsSpeaking(false);
-      return;
-    }
-
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setIsSpeaking(true);
-
-    Speech.speak(word.word, {
-      language: "en-US",
-      rate: 0.85,
-      pitch: 1.0,
-      onStart: () => setIsSpeaking(true),
-      onDone: () => setIsSpeaking(false),
-      onStopped: () => setIsSpeaking(false),
-      onError: () => {
-        setIsSpeaking(false);
-        setSpeechError(true);
-      },
-    });
-  }, [word, isSpeaking]);
-
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       {/* Header */}
@@ -111,7 +81,6 @@ export default function WordDetailScreen() {
         <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color={colors.foreground} />
         </TouchableOpacity>
-        {/* Difficulty badge */}
         <View
           style={[
             styles.diffBadge,
@@ -138,82 +107,16 @@ export default function WordDetailScreen() {
         <View style={styles.hero}>
           <Text style={[styles.mainWord, { color: colors.foreground }]}>{word.word}</Text>
 
-          {/* Pronunciation row */}
-          <TouchableOpacity
-            onPress={handlePronunciation}
-            activeOpacity={0.75}
-            style={[
-              styles.pronRow,
-              {
-                backgroundColor: isSpeaking
-                  ? colors.primary + "18"
-                  : speechError
-                  ? colors.forgot + "12"
-                  : colors.secondary,
-                borderRadius: colors.radius,
-                borderWidth: 1,
-                borderColor: isSpeaking
-                  ? colors.primary + "55"
-                  : speechError
-                  ? colors.forgot + "44"
-                  : "transparent",
-              },
-            ]}
-          >
-            <Ionicons
-              name={
-                speechError
-                  ? "alert-circle"
-                  : isSpeaking
-                  ? "stop-circle"
-                  : "volume-high"
-              }
-              size={18}
-              color={
-                speechError
-                  ? colors.forgot
-                  : isSpeaking
-                  ? colors.primary
-                  : colors.primary
-              }
-            />
-            <Text style={[styles.pronText, { color: colors.mutedForeground }]}>
-              {word.pronunciation}
-            </Text>
-            <View
-              style={[
-                styles.listenBadge,
-                {
-                  backgroundColor: isSpeaking
-                    ? colors.primary
-                    : speechError
-                    ? colors.forgot + "22"
-                    : colors.primary + "22",
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.listenText,
-                  {
-                    color: isSpeaking
-                      ? "#fff"
-                      : speechError
-                      ? colors.forgot
-                      : colors.primary,
-                  },
-                ]}
-              >
-                {speechError ? "오류" : isSpeaking ? "정지" : "듣기"}
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          {speechError && (
-            <Text style={[styles.speechErrorText, { color: colors.forgot }]}>
-              발음을 재생할 수 없습니다
-            </Text>
-          )}
+          {/* SpeechBar — tap to play/stop, speed 0.8/1.0/1.2, replay */}
+          <SpeechBar
+            pronunciation={word.pronunciation}
+            isSpeaking={isSpeaking}
+            speechError={speechError}
+            speed={speed}
+            onToggle={() => toggle(word.word)}
+            onSpeedChange={setSpeed}
+            onReplay={replay}
+          />
 
           {/* Meaning box */}
           <View
@@ -391,22 +294,6 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontFamily: "NotoSansKR_700Bold",
     letterSpacing: -2,
-    textAlign: "center",
-  },
-  pronRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    width: "100%",
-  },
-  pronText: { flex: 1, fontSize: 15, fontFamily: "NotoSansKR_400Regular" },
-  listenBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 99 },
-  listenText: { fontSize: 11, fontFamily: "NotoSansKR_600SemiBold" },
-  speechErrorText: {
-    fontSize: 12,
-    fontFamily: "NotoSansKR_400Regular",
     textAlign: "center",
   },
   meaningBox: {
