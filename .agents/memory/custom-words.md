@@ -14,7 +14,7 @@ All screens that need a full word list must build `allWords = [...MOCK_WORDS, ..
 - `customWords: Word[]` — reactive state, loaded on startup from AsyncStorage
 - `saveCustomWord(word: Word)` — saves to customWords + savedWords + reviews atomically
 - `updateCustomWord(id, fields)` — patches specific fields of a saved custom word
-- `deleteCustomWord(id)` — removes from customWords only (reviews/savedWords kept)
+- `deleteCustomWord(id)` — cascades: removes from customWords + savedWords + reviews atomically
 - `findWord(id)` — checks MOCK_WORDS first via getWordById, then customWords
 
 ## Custom word shape

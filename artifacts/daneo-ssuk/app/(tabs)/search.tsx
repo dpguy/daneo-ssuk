@@ -152,11 +152,23 @@ export default function SearchScreen() {
             renderItem={({ item }) => <WordCard word={item} />}
             contentContainerStyle={styles.list}
             scrollEnabled={!!displayWords.length}
+            ListHeaderComponent={
+              activeTab === "saved" && customWords.length === 0 ? (
+                <View style={[styles.customEmptyBanner, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+                  <Ionicons name="star-outline" size={16} color={colors.mutedForeground} />
+                  <Text style={[styles.customEmptyBannerText, { color: colors.mutedForeground }]}>
+                    아직 직접 저장한 단어가 없어요
+                  </Text>
+                </View>
+              ) : null
+            }
             ListEmptyComponent={
               <View style={styles.empty}>
                 <Ionicons name="bookmark-outline" size={48} color={colors.mutedForeground} />
                 <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-                  {activeTab === "saved" ? "저장한 단어가 없습니다" : "단어가 없습니다"}
+                  {activeTab === "saved"
+                    ? "저장한 단어가 없어요\n카메라로 찍거나 단어장을 탐색해 보세요"
+                    : "단어가 없습니다"}
                 </Text>
               </View>
             }
@@ -214,5 +226,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "NotoSansKR_400Regular",
     textAlign: "center",
+    lineHeight: 22,
+  },
+  customEmptyBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  customEmptyBannerText: {
+    fontSize: 13,
+    fontFamily: "NotoSansKR_400Regular",
   },
 });

@@ -5,6 +5,7 @@ import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Platform,
   ScrollView,
   StyleSheet,
@@ -33,8 +34,12 @@ export default function WordDetailScreen() {
   const router = useRouter();
   // `word` param is passed for unmatched camera words that aren't in the dataset
   const { id, word: wordParam } = useLocalSearchParams<{ id: string; word?: string }>();
-  const { isWordSaved, saveWord, unsaveWord, addReview, findWord } = useApp();
+  const { isWordSaved, saveWord, unsaveWord, addReview, findWord, updateCustomWord, deleteCustomWord } = useApp();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
+
+  // State for custom word edit/delete — declared before any conditional returns (React rules of hooks)
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { isSpeaking, speechError, speed, setSpeed, toggle, replay, stop } = useSpeech();
 
@@ -49,6 +54,8 @@ export default function WordDetailScreen() {
 
   // ── Fallback screen for words not in the dataset ─────────────────────────────
   if (!word) {
+    // Stay blank while navigating away after deletion — prevents flash of UnknownWordScreen
+    if (deletingId) return null;
     const unknownWord = wordParam || id || "알 수 없음";
     return (
       <UnknownWordScreen
@@ -91,6 +98,49 @@ export default function WordDetailScreen() {
     // Ensure word is in the review queue before navigating to memorization
     await addReview(word.id);
     router.push({ pathname: "/memorization", params: { id: word.id } });
+  };
+
+  // ── Custom word edit / delete ─────────────────────────────────────────────
+  const handleEdit = () => setEditModalVisible(true);
+
+  const handleEditSave = async (fields: CustomWordFields) => {
+    await updateCustomWord(word.id, {
+      meaning: fields.meaning.trim() || word.meaning,
+      example: fields.example.trim() || word.example,
+      exampleKorean: fields.exampleKorean.trim() || word.exampleKorean,
+      idiom: fields.idiom.trim(),
+      idiomMeaning: fields.idiomMeaning.trim(),
+      memoryTip: fields.memoryTip.trim() || word.memoryTip,
+      relatedWords: fields.relatedWords
+        ? fields.relatedWords.split(",").map((s) => s.trim()).filter(Boolean)
+        : word.relatedWords,
+      ...(fields.difficulty
+        ? { difficulty: fields.difficulty as Word["difficulty"] }
+        : {}),
+    });
+    setEditModalVisible(false);
+    Alert.alert("저장되었습니다", "단어 정보가 수정되었습니다");
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      "이 단어를 삭제할까요?",
+      `"${word.word}"을(를) 삭제합니다.\n복습 일정과 저장 목록에서도 제거됩니다.`,
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "삭제",
+          style: "destructive",
+          onPress: async () => {
+            setDeletingId(word.id);
+            await deleteCustomWord(word.id);
+            Alert.alert("단어가 삭제되었습니다", undefined, [
+              { text: "확인", onPress: () => router.back() },
+            ]);
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -250,38 +300,107 @@ export default function WordDetailScreen() {
           },
         ]}
       >
-        <View style={styles.bottomRow}>
-          <PrimaryButton
-            title={saved ? "저장됨" : "저장하기"}
-            onPress={handleBookmark}
-            variant={saved ? "secondary" : "ghost"}
-            style={styles.saveBtn}
-          />
-          <PrimaryButton
-            title="암기 시작"
-            onPress={handleStartMemorize}
-            style={styles.memorizeBtn}
-          />
-        </View>
-        <TouchableOpacity
-          onPress={() =>
-            router.push({ pathname: "/spelling", params: { id: word.id } })
-          }
-          style={[
-            styles.spellingBtn,
-            {
-              borderColor: colors.primary + "55",
-              backgroundColor: colors.primary + "0D",
-              borderRadius: colors.radius,
-            },
-          ]}
-        >
-          <Ionicons name="text" size={16} color={colors.primary} />
-          <Text style={[styles.spellingBtnText, { color: colors.primary }]}>
-            스펠링 연습
-          </Text>
-        </TouchableOpacity>
+        {word.isCustom ? (
+          <>
+            <View style={styles.bottomRow}>
+              <TouchableOpacity
+                onPress={handleEdit}
+                style={[
+                  styles.editBtn,
+                  {
+                    borderColor: colors.primary + "55",
+                    backgroundColor: colors.primary + "0D",
+                    borderRadius: colors.radius,
+                  },
+                ]}
+              >
+                <Ionicons name="pencil-outline" size={16} color={colors.primary} />
+                <Text style={[styles.editBtnText, { color: colors.primary }]}>수정하기</Text>
+              </TouchableOpacity>
+              <PrimaryButton
+                title="암기 시작"
+                onPress={handleStartMemorize}
+                style={styles.memorizeBtn}
+              />
+            </View>
+            <TouchableOpacity
+              onPress={() => router.push({ pathname: "/spelling", params: { id: word.id } })}
+              style={[
+                styles.spellingBtn,
+                {
+                  borderColor: colors.primary + "55",
+                  backgroundColor: colors.primary + "0D",
+                  borderRadius: colors.radius,
+                },
+              ]}
+            >
+              <Ionicons name="text" size={16} color={colors.primary} />
+              <Text style={[styles.spellingBtnText, { color: colors.primary }]}>스펠링 연습</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleDelete}
+              style={[
+                styles.deleteBtn,
+                { borderColor: colors.hard + "33", borderRadius: colors.radius },
+              ]}
+            >
+              <Ionicons name="trash-outline" size={16} color={colors.hard} />
+              <Text style={[styles.deleteBtnText, { color: colors.hard }]}>이 단어 삭제하기</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <View style={styles.bottomRow}>
+              <PrimaryButton
+                title={saved ? "저장됨" : "저장하기"}
+                onPress={handleBookmark}
+                variant={saved ? "secondary" : "ghost"}
+                style={styles.saveBtn}
+              />
+              <PrimaryButton
+                title="암기 시작"
+                onPress={handleStartMemorize}
+                style={styles.memorizeBtn}
+              />
+            </View>
+            <TouchableOpacity
+              onPress={() => router.push({ pathname: "/spelling", params: { id: word.id } })}
+              style={[
+                styles.spellingBtn,
+                {
+                  borderColor: colors.primary + "55",
+                  backgroundColor: colors.primary + "0D",
+                  borderRadius: colors.radius,
+                },
+              ]}
+            >
+              <Ionicons name="text" size={16} color={colors.primary} />
+              <Text style={[styles.spellingBtnText, { color: colors.primary }]}>스펠링 연습</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
+
+      {/* Edit modal — only rendered for custom words */}
+      {word.isCustom && (
+        <EditCustomWordModal
+          visible={editModalVisible}
+          mode="edit"
+          wordText={word.word}
+          initialValues={{
+            meaning: word.meaning,
+            example: word.example,
+            exampleKorean: word.exampleKorean,
+            idiom: word.idiom ?? "",
+            idiomMeaning: word.idiomMeaning ?? "",
+            memoryTip: word.memoryTip,
+            difficulty: word.difficulty ?? "",
+            relatedWords: word.relatedWords?.join(", ") ?? "",
+          }}
+          onSave={handleEditSave}
+          onClose={() => setEditModalVisible(false)}
+        />
+      )}
     </View>
   );
 }
@@ -331,10 +450,13 @@ function UnknownWordScreen({
       meaning: fields.meaning.trim() || "뜻을 직접 입력해 주세요",
       example: fields.example.trim() || "I want to learn this word.",
       exampleKorean: fields.exampleKorean.trim() || "나는 이 단어를 배우고 싶다.",
-      idiom: "",
-      idiomMeaning: "",
+      idiom: fields.idiom.trim(),
+      idiomMeaning: fields.idiomMeaning.trim(),
       memoryTip: fields.memoryTip.trim() || "직접 뜻을 입력하면 더 오래 기억할 수 있어요.",
-      difficulty: "custom",
+      difficulty: (fields.difficulty || "custom") as Word["difficulty"],
+      relatedWords: fields.relatedWords
+        ? fields.relatedWords.split(",").map((s) => s.trim()).filter(Boolean)
+        : [],
       level: "elementary",
       grade: 0,
       unit: 0,
@@ -532,6 +654,25 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   spellingBtnText: { fontSize: 14, fontFamily: "NotoSansKR_600SemiBold" },
+  editBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderWidth: 1,
+    paddingVertical: 12,
+  },
+  editBtnText: { fontSize: 14, fontFamily: "NotoSansKR_600SemiBold" },
+  deleteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderWidth: 1,
+    paddingVertical: 10,
+  },
+  deleteBtnText: { fontSize: 14, fontFamily: "NotoSansKR_600SemiBold" },
   // Unknown word styles
   unknownCard: {
     borderWidth: 1,

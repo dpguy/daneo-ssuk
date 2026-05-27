@@ -433,15 +433,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   /**
-   * Removes a custom word from the word list (does not remove from reviews/savedWords).
+   * Removes a custom word and atomically cascades the deletion to savedWords and reviews
+   * so the word disappears from the Search saved tab and Review queue immediately.
    */
   const deleteCustomWord = useCallback(
     async (id: string) => {
-      const updated = state.customWords.filter((w) => w.id !== id);
-      setState((prev) => ({ ...prev, customWords: updated }));
-      await save(KEYS.customWords, updated);
+      const updatedCustom = state.customWords.filter((w) => w.id !== id);
+      const updatedSaved = state.savedWords.filter((s) => s.wordId !== id);
+      const updatedReviews = state.reviews.filter((r) => r.wordId !== id);
+      setState((prev) => ({
+        ...prev,
+        customWords: updatedCustom,
+        savedWords: updatedSaved,
+        reviews: updatedReviews,
+      }));
+      await Promise.all([
+        save(KEYS.customWords, updatedCustom),
+        save(KEYS.savedWords, updatedSaved),
+        save(KEYS.reviews, updatedReviews),
+      ]);
     },
-    [state.customWords]
+    [state.customWords, state.savedWords, state.reviews]
   );
 
   /**
